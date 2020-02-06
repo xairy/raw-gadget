@@ -1,0 +1,13 @@
+diff --git a/raw_gadget/raw_gadget.c b/raw_gadget/raw_gadget.c
+index 51796af..b648ee6 100644
+--- a/raw_gadget/raw_gadget.c
++++ b/raw_gadget/raw_gadget.c
+@@ -23,7 +23,7 @@
+ #include <linux/usb/ch11.h>
+ #include <linux/usb/gadget.h>
+ 
+-#include <uapi/linux/usb/raw_gadget.h>
++#include "raw_gadget.h"
+ 
+ #define	DRIVER_DESC "USB Raw Gadget"
+ #define DRIVER_NAME "raw-gadget"

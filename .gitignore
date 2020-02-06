@@ -1,0 +1,11 @@
+*.ko
+*.o
+*.o.ur-safe
+*.order
+*.mod.c
+*.swp
+*.symvers
+
+dummy_hcd/.*
+raw_gadget/.*
+examples/keyboard

@@ -1,0 +1,15 @@
+diff --git a/examples/keyboard.c b/examples/keyboard.c
+index d755509..713de88 100644
+--- a/examples/keyboard.c
++++ b/examples/keyboard.c
+@@ -94,8 +94,8 @@ int usb_raw_open() {
+ 
+ void usb_raw_init(int fd, enum usb_device_speed speed) {
+ 	struct usb_raw_init arg;
+-	strcpy(&arg.driver_name[0], "dummy_udc");
+-	strcpy(&arg.device_name[0], "dummy_udc.0");
++	strcpy(&arg.driver_name[0], "20980000.usb");
++	strcpy(&arg.device_name[0], "20980000.usb");
+ 	arg.speed = speed;
+ 	int rv = ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
+ 	if (rv < 0) {
