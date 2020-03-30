@@ -34,7 +34,7 @@ MODULE_LICENSE("GPL");
 
 /*----------------------------------------------------------------------*/
 
-#define RAW_EVENT_QUEUE_SIZE	128
+#define RAW_EVENT_QUEUE_SIZE	16
 
 struct raw_event_queue {
 	/* See the comment in raw_event_queue_fetch() for locking details. */
@@ -335,6 +335,10 @@ static int raw_open(struct inode *inode, struct file *fd)
 {
 	struct raw_dev *dev;
 
+	/* Nonblocking I/O is not supported yet. */
+	if (fd->f_flags & O_NONBLOCK)
+		return -EINVAL;
+
 	dev = dev_new();
 	if (!dev)
 		return -ENOMEM;
@@ -601,7 +605,7 @@ static int raw_process_ep0_io(struct raw_dev *dev, struct usb_raw_ep_io *io,
 	dev->ep0_urb_queued = true;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	ret = usb_ep_queue(dev->gadget->ep0, dev->req, GFP_ATOMIC);
+	ret = usb_ep_queue(dev->gadget->ep0, dev->req, GFP_KERNEL);
 	if (ret) {
 		dev_err(&dev->gadget->dev,
 				"fail, usb_ep_queue returned %d\n", ret);
@@ -805,6 +809,12 @@ static int raw_ioctl_ep_disable(struct raw_dev *dev, unsigned long value)
 		ret = -EINVAL;
 		goto out_unlock;
 	}
+	if (dev->eps[i].urb_queued) {
+		dev_dbg(&dev->gadget->dev,
+				"fail, waiting for urb completion\n");
+		ret = -EINVAL;
+		goto out_unlock;
+	}
 	dev->eps[i].disabling = true;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
@@ -889,7 +899,7 @@ static int raw_process_ep_io(struct raw_dev *dev, struct usb_raw_ep_io *io,
 	ep->urb_queued = true;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	ret = usb_ep_queue(ep->ep, ep->req, GFP_ATOMIC);
+	ret = usb_ep_queue(ep->ep, ep->req, GFP_KERNEL);
 	if (ret) {
 		dev_err(&dev->gadget->dev,
 				"fail, usb_ep_queue returned %d\n", ret);

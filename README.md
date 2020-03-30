@@ -1,9 +1,9 @@
 Raw Gadget
 ==========
 
-__Note__: most likely you need GadgetFS, not Raw Gadget. See the differences [here](https://github.com/google/kasan/blob/usb-fuzzer/Documentation/usb/raw-gadget.rst#comparison-to-gadgetfs).
+__Note__: most likely you need GadgetFS, not Raw Gadget. See the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
-[USB Raw Gadget](https://github.com/google/kasan/blob/usb-fuzzer/Documentation/usb/raw-gadget.rst) is a kernel module that allows to emulate USB devices from userspace.
+[USB Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a kernel module that allows to emulate USB devices from userspace.
 This repository contains instructions and examples for using Raw Gadget.
 
 The module is currently [under review](https://patchwork.kernel.org/cover/11332295/) for upstream inclusion, so the interface it provides for the userspace might change.
