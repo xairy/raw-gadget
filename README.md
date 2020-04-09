@@ -13,3 +13,14 @@ See [dummy_hcd](/dummy_hcd) and [raw_gadget](/raw_gadget) for information on how
 Building kernel modules requires kernel headers.
 On desktop Ubuntu you can get them by installing `` linux-headers-`uname -r` ``.
 On Raspberry Pi Zero follow [these instructions](https://github.com/notro/rpi-source/wiki).
+
+## USB Device Controllers
+
+| Hardware | Kernel | Driver | Device | Works? |
+| :---: | :---: | :---: | :---: | :---: |
+| | `5.3.0-45-generic` | `dummy_udc` | `dummy_udc.0` | Yes |
+| Raspberry Pi Zero | `4.14.97+` | `20980000.usb` | `20980000.usb` | Yes |
+| BeagleBone Black | `4.19.94-ti-r42` | `musb-hdrc` | `musb-hdrc.0` | Yes |
+| [EC3380-AB](http://www.hwtools.net/Adapter/EC3380-AB.html) | `5.3.0-45-generic` | `net2280` | `0000:04:00.0` (e.g.) | [Partly](https://github.com/xairy/raw-gadget/issues/5) |
+| Odroid C2 | `3.14.79-116` | `dwc_otg_pcd` | `dwc2_a` | No, kernel too old |
+| HiKey 960 | | | | ? |
