@@ -6,7 +6,7 @@ __Note__: most likely you need GadgetFS, not Raw Gadget. See the differences [he
 [USB Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a kernel module that allows to emulate USB devices from userspace.
 This repository contains instructions and examples for using Raw Gadget.
 
-The module is currently [under review](https://patchwork.kernel.org/cover/11332295/) for upstream inclusion, so the interface it provides for the userspace might change.
+The module is has been [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into mainline in 5.7-rc1.
 
 See [dummy_hcd](/dummy_hcd) and [raw_gadget](/raw_gadget) for information on how to build and `insmod` corresponding kernel modules. Then you can try [examples](/examples).
 
