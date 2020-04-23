@@ -94,8 +94,8 @@ int usb_raw_open() {
 
 void usb_raw_init(int fd, enum usb_device_speed speed) {
 	struct usb_raw_init arg;
-	strcpy(&arg.driver_name[0], "dummy_udc");
-	strcpy(&arg.device_name[0], "dummy_udc.0");
+	strcpy((char *)&arg.driver_name[0], "dummy_udc");
+	strcpy((char *)&arg.device_name[0], "dummy_udc.0");
 	arg.speed = speed;
 	int rv = ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
 	if (rv < 0) {
