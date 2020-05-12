@@ -9,3 +9,5 @@
 dummy_hcd/.*
 raw_gadget/.*
 examples/keyboard
+tests/gadget
+tests/testusb
