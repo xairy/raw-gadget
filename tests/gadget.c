@@ -1,10 +1,11 @@
-// Originally written for https://github.com/google/syzkaller.
+// Emulates a USB device that aims to pass usbtest driver tests.
+// Part of the USB Raw Gadget test suite.
 //
-// Copyright 2019 syzkaller project authors. All rights reserved.
-// Use of this source code is governed by Apache 2 LICENSE.
+// Andrey Konovalov <andreyknvl@gmail.com>
 
 #include <assert.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -13,32 +14,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <linux/types.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-#include <linux/hid.h>
+#include <linux/types.h>
 #include <linux/usb/ch9.h>
-
-/*----------------------------------------------------------------------*/
-
-struct hid_class_descriptor {
-	__u8  bDescriptorType;
-	__le16 wDescriptorLength;
-} __attribute__ ((packed));
-
-struct hid_descriptor {
-	__u8  bLength;
-	__u8  bDescriptorType;
-	__le16 bcdHID;
-	__u8  bCountryCode;
-	__u8  bNumDescriptors;
-
-	struct hid_class_descriptor desc[1];
-} __attribute__ ((packed));
 
 /*----------------------------------------------------------------------*/
 
@@ -328,15 +310,6 @@ void log_control_request(struct usb_ctrlrequest *ctrl) {
 			case USB_DT_SS_ENDPOINT_COMP:
 				printf("  desc = USB_DT_SS_ENDPOINT_COMP\n");
 				break;
-			case HID_DT_HID:
-				printf("  descriptor = HID_DT_HID\n");
-				return;
-			case HID_DT_REPORT:
-				printf("  descriptor = HID_DT_REPORT\n");
-				return;
-			case HID_DT_PHYSICAL:
-				printf("  descriptor = HID_DT_PHYSICAL\n");
-				return;
 			default:
 				printf("  desc = unknown = 0x%x\n",
 							ctrl->wValue >> 8);
@@ -371,24 +344,6 @@ void log_control_request(struct usb_ctrlrequest *ctrl) {
 		break;
 	case USB_TYPE_CLASS:
 		switch (ctrl->bRequest) {
-		case HID_REQ_GET_REPORT:
-			printf("  req = HID_REQ_GET_REPORT\n");
-			break;
-		case HID_REQ_GET_IDLE:
-			printf("  req = HID_REQ_GET_IDLE\n");
-			break;
-		case HID_REQ_GET_PROTOCOL:
-			printf("  req = HID_REQ_GET_PROTOCOL\n");
-			break;
-		case HID_REQ_SET_REPORT:
-			printf("  req = HID_REQ_SET_REPORT\n");
-			break;
-		case HID_REQ_SET_IDLE:
-			printf("  req = HID_REQ_SET_IDLE\n");
-			break;
-		case HID_REQ_SET_PROTOCOL:
-			printf("  req = HID_REQ_SET_PROTOCOL\n");
-			break;
 		default:
 			printf("  req = unknown = 0x%x\n", ctrl->bRequest);
 			break;
@@ -418,8 +373,9 @@ void log_event(struct usb_raw_event *event) {
 
 #define BCD_USB		0x0200
 
-#define USB_VENDOR	0x046d
-#define USB_PRODUCT	0xc312 
+// Pretend to be Linux Gadget Zero to unlock more testing features.
+#define USB_VENDOR	0x0525
+#define USB_PRODUCT	0xa4a0
 
 #define STRING_ID_MANUFACTURER	0
 #define STRING_ID_PRODUCT	1
@@ -428,9 +384,13 @@ void log_event(struct usb_raw_event *event) {
 #define STRING_ID_INTERFACE	4
 
 #define EP_MAX_PACKET_CONTROL	64
+#define EP_MAX_PACKET_BULK	512
 #define EP_MAX_PACKET_INT	8
 
 // Assigned dynamically.
+#define EP_NUM_BULK_OUT	0x0
+#define EP_NUM_BULK_IN	0x0
+#define EP_NUM_INT_OUT	0x0
 #define EP_NUM_INT_IN	0x0
 
 struct usb_device_descriptor usb_device = {
@@ -473,19 +433,61 @@ struct usb_config_descriptor usb_config = {
 	.bMaxPower =		0x32,
 };
 
-struct usb_interface_descriptor usb_interface = {
+struct usb_interface_descriptor usb_interface_alt0 = {
 	.bLength =		USB_DT_INTERFACE_SIZE,
 	.bDescriptorType =	USB_DT_INTERFACE,
 	.bInterfaceNumber =	0,
 	.bAlternateSetting =	0,
-	.bNumEndpoints =	1,
-	.bInterfaceClass =	USB_CLASS_HID,
-	.bInterfaceSubClass =	1,
-	.bInterfaceProtocol =	1,
+	.bNumEndpoints =	4,
+	.bInterfaceClass =	USB_CLASS_VENDOR_SPEC,
+	.bInterfaceSubClass =	0,
+	.bInterfaceProtocol =	0,
 	.iInterface =		STRING_ID_INTERFACE,
 };
 
-struct usb_endpoint_descriptor usb_endpoint = {
+struct usb_interface_descriptor usb_interface_alt1 = {
+	.bLength =		USB_DT_INTERFACE_SIZE,
+	.bDescriptorType =	USB_DT_INTERFACE,
+	.bInterfaceNumber =	0,
+	.bAlternateSetting =	1,
+	.bNumEndpoints =	0,
+	.bInterfaceClass =	USB_CLASS_VENDOR_SPEC,
+	.bInterfaceSubClass =	0,
+	.bInterfaceProtocol =	0,
+	.iInterface =		STRING_ID_INTERFACE,
+};
+
+struct usb_interface_descriptor *usb_interface_alts[] =
+	{ &usb_interface_alt0, &usb_interface_alt1 };
+
+struct usb_endpoint_descriptor usb_endpoint_bulk_out = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+	.bEndpointAddress =	USB_DIR_OUT | EP_NUM_BULK_OUT,
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	EP_MAX_PACKET_BULK,
+	.bInterval =		5,
+};
+
+struct usb_endpoint_descriptor usb_endpoint_bulk_in = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+	.bEndpointAddress =	USB_DIR_IN | EP_NUM_BULK_IN,
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	EP_MAX_PACKET_BULK,
+	.bInterval =		5,
+};
+
+struct usb_endpoint_descriptor usb_endpoint_int_out = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+	.bEndpointAddress =	USB_DIR_OUT | EP_NUM_INT_OUT,
+	.bmAttributes =		USB_ENDPOINT_XFER_INT,
+	.wMaxPacketSize =	EP_MAX_PACKET_INT,
+	.bInterval =		5,
+};
+
+struct usb_endpoint_descriptor usb_endpoint_int_in = {
 	.bLength =		USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
 	.bEndpointAddress =	USB_DIR_IN | EP_NUM_INT_IN,
@@ -494,56 +496,14 @@ struct usb_endpoint_descriptor usb_endpoint = {
 	.bInterval =		5,
 };
 
-char usb_hid_report[] = {
-	0x05, 0x01,                    // Usage Page (Generic Desktop)        0
-	0x09, 0x06,                    // Usage (Keyboard)                    2
-	0xa1, 0x01,                    // Collection (Application)            4
-	0x05, 0x07,                    //  Usage Page (Keyboard)              6
-	0x19, 0xe0,                    //  Usage Minimum (224)                8
-	0x29, 0xe7,                    //  Usage Maximum (231)                10
-	0x15, 0x00,                    //  Logical Minimum (0)                12
-	0x25, 0x01,                    //  Logical Maximum (1)                14
-	0x75, 0x01,                    //  Report Size (1)                    16
-	0x95, 0x08,                    //  Report Count (8)                   18
-	0x81, 0x02,                    //  Input (Data,Var,Abs)               20
-	0x95, 0x01,                    //  Report Count (1)                   22
-	0x75, 0x08,                    //  Report Size (8)                    24
-	0x81, 0x01,                    //  Input (Cnst,Arr,Abs)               26
-	0x95, 0x03,                    //  Report Count (3)                   28
-	0x75, 0x01,                    //  Report Size (1)                    30
-	0x05, 0x08,                    //  Usage Page (LEDs)                  32
-	0x19, 0x01,                    //  Usage Minimum (1)                  34
-	0x29, 0x03,                    //  Usage Maximum (3)                  36
-	0x91, 0x02,                    //  Output (Data,Var,Abs)              38
-	0x95, 0x05,                    //  Report Count (5)                   40
-	0x75, 0x01,                    //  Report Size (1)                    42
-	0x91, 0x01,                    //  Output (Cnst,Arr,Abs)              44
-	0x95, 0x06,                    //  Report Count (6)                   46
-	0x75, 0x08,                    //  Report Size (8)                    48
-	0x15, 0x00,                    //  Logical Minimum (0)                50
-	0x26, 0xff, 0x00,              //  Logical Maximum (255)              52
-	0x05, 0x07,                    //  Usage Page (Keyboard)              55
-	0x19, 0x00,                    //  Usage Minimum (0)                  57
-	0x2a, 0xff, 0x00,              //  Usage Maximum (255)                59
-	0x81, 0x00,                    //  Input (Data,Arr,Abs)               62
-	0xc0,                          // End Collection                      64
+struct usb_bos_descriptor usb_bos = {
+	.bLength =		USB_DT_BOS_SIZE,
+	.bDescriptorType =	USB_DT_BOS,
+	.wTotalLength =		USB_DT_BOS_SIZE,
+	.bNumDeviceCaps =	0,
 };
 
-struct hid_descriptor usb_hid = {
-	.bLength =		9,
-	.bDescriptorType =	HID_DT_HID,
-	.bcdHID =		__constant_cpu_to_le16(0x0110),
-	.bCountryCode =		0,
-	.bNumDescriptors =	1,
-	.desc =			{
-		{
-			.bDescriptorType =	HID_DT_REPORT,
-			.wDescriptorLength =	sizeof(usb_hid_report),
-		}
-	},
-};
-
-int build_config(char *data, int length) {
+int build_config(char *data, int length, bool other_speed) {
 	struct usb_config_descriptor *config =
 		(struct usb_config_descriptor *)data;
 	int total_length = 0;
@@ -554,26 +514,47 @@ int build_config(char *data, int length) {
 	length -= sizeof(usb_config);
 	total_length += sizeof(usb_config);
 
-	assert(length >= sizeof(usb_interface));
-	memcpy(data, &usb_interface, sizeof(usb_interface));
-	data += sizeof(usb_interface);
-	length -= sizeof(usb_interface);
-	total_length += sizeof(usb_interface);
-
-	assert(length >= sizeof(usb_hid));
-	memcpy(data, &usb_hid, sizeof(usb_hid));
-	data += sizeof(usb_hid);
-	length -= sizeof(usb_hid);
-	total_length += sizeof(usb_hid);
+	assert(length >= sizeof(usb_interface_alt0));
+	memcpy(data, &usb_interface_alt0, sizeof(usb_interface_alt0));
+	data += sizeof(usb_interface_alt0);
+	length -= sizeof(usb_interface_alt0);
+	total_length += sizeof(usb_interface_alt0);
 
 	assert(length >= USB_DT_ENDPOINT_SIZE);
-	memcpy(data, &usb_endpoint, USB_DT_ENDPOINT_SIZE);
+	memcpy(data, &usb_endpoint_bulk_out, USB_DT_ENDPOINT_SIZE);
 	data += USB_DT_ENDPOINT_SIZE;
 	length -= USB_DT_ENDPOINT_SIZE;
 	total_length += USB_DT_ENDPOINT_SIZE;
 
+	assert(length >= USB_DT_ENDPOINT_SIZE);
+	memcpy(data, &usb_endpoint_bulk_in, USB_DT_ENDPOINT_SIZE);
+	data += USB_DT_ENDPOINT_SIZE;
+	length -= USB_DT_ENDPOINT_SIZE;
+	total_length += USB_DT_ENDPOINT_SIZE;
+
+	assert(length >= USB_DT_ENDPOINT_SIZE);
+	memcpy(data, &usb_endpoint_int_out, USB_DT_ENDPOINT_SIZE);
+	data += USB_DT_ENDPOINT_SIZE;
+	length -= USB_DT_ENDPOINT_SIZE;
+	total_length += USB_DT_ENDPOINT_SIZE;
+
+	assert(length >= USB_DT_ENDPOINT_SIZE);
+	memcpy(data, &usb_endpoint_int_in, USB_DT_ENDPOINT_SIZE);
+	data += USB_DT_ENDPOINT_SIZE;
+	length -= USB_DT_ENDPOINT_SIZE;
+	total_length += USB_DT_ENDPOINT_SIZE;
+
+	assert(length >= sizeof(usb_interface_alt1));
+	memcpy(data, &usb_interface_alt1, sizeof(usb_interface_alt1));
+	data += sizeof(usb_interface_alt1);
+	length -= sizeof(usb_interface_alt1);
+	total_length += sizeof(usb_interface_alt1);
+
 	config->wTotalLength = __cpu_to_le16(total_length);
 	printf("config->wTotalLength: %d\n", total_length);
+
+	if (other_speed)
+		config->bDescriptorType = USB_DT_OTHER_SPEED_CONFIG;
 
 	return total_length;
 }
@@ -630,18 +611,34 @@ void process_eps_info(int fd) {
 	}
 
 	for (int i = 0; i < num; i++) {
-		if (assign_ep_address(&info.eps[i], &usb_endpoint))
+		if (assign_ep_address(&info.eps[i], &usb_endpoint_bulk_out))
+			continue;
+		if (assign_ep_address(&info.eps[i], &usb_endpoint_bulk_in))
+			continue;
+		if (assign_ep_address(&info.eps[i], &usb_endpoint_int_out))
+			continue;
+		if (assign_ep_address(&info.eps[i], &usb_endpoint_int_in))
 			continue;
 	}
 
-	int int_in_addr = usb_endpoint_num(&usb_endpoint);
+	int bulk_out_addr = usb_endpoint_num(&usb_endpoint_bulk_out);
+	assert(bulk_out_addr != 0);
+	printf("bulk_out: addr = %u\n", bulk_out_addr);
+
+	int bulk_in_addr = usb_endpoint_num(&usb_endpoint_bulk_in);
+	assert(bulk_in_addr != 0);
+	printf("bulk_in: addr = %u\n", bulk_in_addr);
+
+	int int_out_addr = usb_endpoint_num(&usb_endpoint_int_out);
+	assert(int_out_addr != 0);
+	printf("int_out: addr = %u\n", int_out_addr);
+
+	int int_in_addr = usb_endpoint_num(&usb_endpoint_int_in);
 	assert(int_in_addr != 0);
 	printf("int_in: addr = %u\n", int_in_addr);
 }
 
 /*----------------------------------------------------------------------*/
-
-#define EP0_MAX_DATA 256
 
 struct usb_raw_control_event {
 	struct usb_raw_event		inner;
@@ -650,7 +647,12 @@ struct usb_raw_control_event {
 
 struct usb_raw_control_io {
 	struct usb_raw_ep_io		inner;
-	char				data[EP0_MAX_DATA];
+	char				data[EP_MAX_PACKET_CONTROL];
+};
+
+struct usb_raw_bulk_io {
+	struct usb_raw_ep_io		inner;
+	char				data[EP_MAX_PACKET_BULK];
 };
 
 struct usb_raw_int_io {
@@ -658,10 +660,101 @@ struct usb_raw_int_io {
 	char				data[EP_MAX_PACKET_INT];
 };
 
+int alt_index;
+
+int ep_bulk_out = -1;
+int ep_bulk_in = -1;
+int ep_int_out = -1;
 int ep_int_in = -1;
 
+pthread_t ep_bulk_out_thread;
+pthread_t ep_bulk_in_thread;
+pthread_t ep_int_out_thread;
+pthread_t ep_int_in_thread;
+
+void *ep_bulk_out_loop(void *arg) {
+	int fd = (int)(long)arg;
+	struct usb_raw_bulk_io io;
+
+	while (true) {
+		assert(ep_bulk_out != -1);
+		io.inner.ep = ep_bulk_out;
+		io.inner.flags = 0;
+		io.inner.length = sizeof(io.data);
+
+		int rv = usb_raw_ep_read(fd, (struct usb_raw_ep_io *)&io);
+		printf("bulk_out: read %d bytes\n", rv);
+	}
+
+	return NULL;
+}
+
+void *ep_bulk_in_loop(void *arg) {
+	int fd = (int)(long)arg;
+	struct usb_raw_bulk_io io;
+
+	while (true) {
+		assert(ep_bulk_in != -1);
+		io.inner.ep = ep_bulk_in;
+		io.inner.flags = 0;
+		io.inner.length = sizeof(io.data);
+
+		for (int i = 0; i < sizeof(io.data); i++)
+			io.data[i] = (i % EP_MAX_PACKET_BULK) % 63;
+
+		int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
+		printf("bulk_in: wrote %d bytes\n", rv);
+	}
+
+	return NULL;
+}
+
+void *ep_int_out_loop(void *arg) {
+	int fd = (int)(long)arg;
+	struct usb_raw_int_io io;
+
+	while (true) {
+		assert(ep_int_out != -1);
+		io.inner.ep = ep_int_out;
+		io.inner.flags = 0;
+		io.inner.length = sizeof(io.data);
+
+		int rv = usb_raw_ep_read(fd, (struct usb_raw_ep_io *)&io);
+		printf("int_out: read %d bytes\n", rv);
+	}
+
+	return NULL;
+}
+
+void *ep_int_in_loop(void *arg) {
+	int fd = (int)(long)arg;
+	struct usb_raw_int_io io;
+
+	while (true) {
+		assert(ep_int_in != -1);
+		io.inner.ep = ep_int_in;
+		io.inner.flags = 0;
+		io.inner.length = sizeof(io.data);
+
+		for (int i = 0; i < sizeof(io.data); i++)
+			io.data[i] = (i % EP_MAX_PACKET_INT) % 63;
+
+		int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
+		printf("int_in: wrote %d bytes\n", rv);
+	}
+
+	return NULL;
+}
+
+#define VENDOR_REQ_OUT	0x5b
+#define VENDOR_REQ_IN	0x5c
+
+#define VENDOR_BUFFER_SIZE 256
+
+char vendor_buffer[VENDOR_BUFFER_SIZE];
+
 bool ep0_request(int fd, struct usb_raw_control_event *event,
-				struct usb_raw_control_io *io, bool *done) {
+				struct usb_raw_control_io *io) {
 	switch (event->ctrl.bRequestType & USB_TYPE_MASK) {
 	case USB_TYPE_STANDARD:
 		switch (event->ctrl.bRequest) {
@@ -680,7 +773,28 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 			case USB_DT_CONFIG:
 				io->inner.length =
 					build_config(&io->data[0],
-						sizeof(io->data));
+						sizeof(io->data), false);
+				return true;
+			case USB_DT_OTHER_SPEED_CONFIG:
+				io->inner.length =
+					build_config(&io->data[0],
+						sizeof(io->data), true);
+				return true;
+			case USB_DT_INTERFACE:
+				// memcpy(&io->data[0],
+				// 	usb_interface_alts[alt_index],
+				// 	sizeof(*usb_interface_alts[alt_index]));
+				// io->inner.length =
+				// 	sizeof(*usb_interface_alts[alt_index]);
+				// Always stalls.
+				return false;
+			case USB_DT_ENDPOINT:
+				// usbtest doesn't care which endpoint it gets.
+				memcpy(&io->data[0],
+						&usb_endpoint_bulk_in,
+						sizeof(usb_endpoint_bulk_in));
+				io->inner.length =
+						sizeof(usb_endpoint_bulk_in);
 				return true;
 			case USB_DT_STRING:
 				io->data[0] = 4;
@@ -694,10 +808,11 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 				}
 				io->inner.length = 4;
 				return true;
-			case HID_DT_REPORT:
-				memcpy(&io->data[0], &usb_hid_report[0],
-							sizeof(usb_hid_report));
-				io->inner.length = sizeof(usb_hid_report);
+			case USB_DT_BOS:
+				if (BCD_USB < 0x0201)
+					return false;
+				memcpy(&io->data[0], &usb_bos, sizeof(usb_bos));
+				io->inner.length = sizeof(usb_bos);
 				return true;
 			default:
 				printf("fail: no response\n");
@@ -705,13 +820,38 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 			}
 			break;
 		case USB_REQ_SET_CONFIGURATION:
-			ep_int_in = usb_raw_ep_enable(fd, &usb_endpoint);
+			ep_bulk_out = usb_raw_ep_enable(fd,
+						&usb_endpoint_bulk_out);
+			printf("bulk_out: ep = #%d\n", ep_bulk_out);
+			ep_bulk_in = usb_raw_ep_enable(fd,
+						&usb_endpoint_bulk_in);
+			printf("bulk_in: ep = #%d\n", ep_bulk_in);
+			ep_int_out = usb_raw_ep_enable(fd,
+						&usb_endpoint_int_out);
+			printf("int_out: ep = #%d\n", ep_int_out);
+			ep_int_in = usb_raw_ep_enable(fd,
+						&usb_endpoint_int_in);
+			printf("int_in: ep = #%d\n", ep_int_in);
+			pthread_create(&ep_bulk_out_thread, 0,
+					ep_bulk_out_loop, (void *)(long)fd);
+			pthread_create(&ep_bulk_in_thread, 0,
+					ep_bulk_in_loop, (void *)(long)fd);
+			pthread_create(&ep_int_out_thread, 0,
+					ep_int_out_loop, (void *)(long)fd);
+			pthread_create(&ep_int_in_thread, 0,
+					ep_int_in_loop, (void *)(long)fd);
 			usb_raw_vbus_draw(fd, usb_config.bMaxPower);
 			usb_raw_configure(fd);
 			io->inner.length = 0;
 			return true;
+		case USB_REQ_SET_INTERFACE:
+			// TODO: enable/disable endpoints, etc.
+			alt_index = event->ctrl.wValue;
+			io->inner.length = 0;
+			return true;
 		case USB_REQ_GET_INTERFACE:
-			io->data[0] = usb_interface.bAlternateSetting;
+			io->data[0] = usb_interface_alts[alt_index]->
+							bAlternateSetting;
 			io->inner.length = 1;
 			return true;
 		default:
@@ -721,17 +861,6 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 		break;
 	case USB_TYPE_CLASS:
 		switch (event->ctrl.bRequest) {
-		case HID_REQ_SET_REPORT:
-			io->inner.length = 1;
-			*done = true;
-			return true;
-		case HID_REQ_SET_IDLE:
-			io->inner.length = 0;
-			return true;
-		case HID_REQ_SET_PROTOCOL:
-			io->inner.length = 0;
-			*done = true;
-			return true;
 		default:
 			printf("fail: no response\n");
 			exit(EXIT_FAILURE);
@@ -739,6 +868,19 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 		break;
 	case USB_TYPE_VENDOR:
 		switch (event->ctrl.bRequest) {
+		case VENDOR_REQ_OUT:
+			assert(!(event->ctrl.bRequestType & USB_DIR_IN));
+			assert(event->ctrl.wLength <= VENDOR_BUFFER_SIZE);
+			io->inner.length = event->ctrl.wLength;
+			return true;
+		case VENDOR_REQ_IN:
+			assert(event->ctrl.bRequestType & USB_DIR_IN);
+			assert(event->ctrl.wLength <= VENDOR_BUFFER_SIZE);
+			// TODO: allocate buffer dynamically.
+			memcpy(&io->data[0], &vendor_buffer[0],
+						event->ctrl.wLength);
+			io->inner.length = event->ctrl.wLength;
+			return true;
 		default:
 			printf("fail: no response\n");
 			exit(EXIT_FAILURE);
@@ -750,8 +892,6 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 	}
 }
 
-// Not technically a loop as we stop processing ep0 requests to make the
-// example simpler.
 void ep0_loop(int fd) {
 	bool done = false;
 	while (!done) {
@@ -773,7 +913,7 @@ void ep0_loop(int fd) {
 		io.inner.flags = 0;
 		io.inner.length = 0;
 
-		bool reply = ep0_request(fd, &event, &io, &done);
+		bool reply = ep0_request(fd, &event, &io);
 		if (!reply) {
 			printf("ep0: stalling\n");
 			usb_raw_ep0_stall(fd);
@@ -790,27 +930,11 @@ void ep0_loop(int fd) {
 			rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&io);
 			printf("ep0: transferred %d bytes (out)\n", rv);
 		}
-	}
-}
 
-void ep_int_in_loop(int fd) {
-	struct usb_raw_int_io io;
-	io.inner.ep = ep_int_in;
-	io.inner.flags = 0;
-	io.inner.length = 8;
-
-	while (true) {
-		memcpy(&io.inner.data[0],
-				"\x00\x00\x1b\x00\x00\x00\x00\x00", 8);
-		int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-		printf("int_in: key down: %d\n", rv);
-
-		memcpy(&io.inner.data[0],
-				"\x00\x00\x00\x00\x00\x00\x00\x00", 8);
-		rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-		printf("int_in: key up: %d\n", rv);
-
-		sleep(1);
+		if ((event.ctrl.bRequestType & USB_TYPE_MASK) ==
+				USB_TYPE_VENDOR &&
+					event.ctrl.bRequest == VENDOR_REQ_OUT)
+			memcpy(&vendor_buffer[0], &io.data[0], rv);
 	}
 }
 
@@ -827,7 +951,6 @@ int main(int argc, char **argv) {
 	usb_raw_run(fd);
 
 	ep0_loop(fd);
-	ep_int_in_loop(fd);
 
 	close(fd);
 
