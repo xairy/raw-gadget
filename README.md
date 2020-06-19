@@ -41,3 +41,16 @@ USB_UDC_NAME=dummy_udc
 | [EC3380-AB](http://www.hwtools.net/Adapter/EC3380-AB.html) | `5.3.0-45-generic` | `net2280` | `0000:04:00.0` (e.g.) | No, `net2280` buggy |
 | Odroid C2 | `3.14.79-116` | `dwc_otg_pcd` | `dwc2_a` | No, kernel too old |
 | HiKey 960 | | | | ? |
+
+## TODO
+
+* [TODOs in kernel documentation](https://elixir.bootlin.com/linux/v5.7/source/Documentation/usb/raw-gadget.rst#L74)
+* [TODOs in Raw Gadget test suite](/tests#todo)
+* [GitHub issues](https://github.com/xairy/raw-gadget/issues)
+
+Other potential fixes/improvements to investigate:
+
+* Set `ep->maxburst`, `ep->mult` and `ep->maxpacket` in gadget drivers.
+* OTG support.
+* Set `ep->dev` on `ep` allocation.
+* Don't pass `ep0_status` and `ep_status` through `dev`, get from `req` instead.
