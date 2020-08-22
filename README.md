@@ -3,12 +3,13 @@ Raw Gadget
 
 __Note__: most likely you need GadgetFS, not Raw Gadget. See the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
-[USB Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a low level interface for the Linux USB Gadget subsystem. It can be used to emulate physical USB devices with [special hardware](/README.md#usb-device-controllers), or virtual ones (for the kernel it's running on) with [Dummy HCD/UDC](/dummy_hcd).
-This repository contains instructions and examples for using Raw Gadget.
+[USB Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a low-level interface for the Linux USB Gadget subsystem.
+It can be used to emulate physical USB devices with [special hardware](/README.md#usb-device-controllers), or virtual ones (for the kernel it's running on) with [Dummy HCD/UDC](/dummy_hcd).
+This repository contains instructions and [examples](/examples) for using Raw Gadget.
 
-The module has been [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into mainline in `5.7-rc1`. There can still be ABI breaking changes, as the module is not included in any kernel release yet.
-
-See [dummy_hcd](/dummy_hcd) and [raw_gadget](/raw_gadget) for information on how to build and `insmod` corresponding kernel modules. Then you can try [examples](/examples).
+Raw Gadget has been [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into mainline Linux kernel in `5.7`.
+There's no need to use `5.7+` kernels, see [dummy_hcd](/dummy_hcd) and [raw_gadget](/raw_gadget) for information on how to build and `insmod` corresponding modules on older kernels.
+The modules should be compatible with kernel versions down to `4.14`, see the table below.
 
 Building kernel modules requires kernel headers.
 On desktop Ubuntu you can get them by installing `` linux-headers-`uname -r` ``.
@@ -16,14 +17,16 @@ On Raspberry Pi Zero follow [these instructions](https://github.com/notro/rpi-so
 
 ## USB Device Controllers
 
-The name of the UDC device can be found in `/sys/class/udc/`:
+USB Raw Gadget requires the user to provide UDC device and driver names, see [examples](/examples).
+
+UDC device name can be found in `/sys/class/udc/`:
 
 ``` bash
 $ ls /sys/class/udc/
 dummy_udc.0
 ```
 
-The name of the UDC driver is usually present in `/sys/class/udc/$UDC/uevent`:
+UDC driver name is usually present in `/sys/class/udc/$UDC/uevent`:
 
 ``` bash
 $ cat /sys/class/udc/dummy_udc.0/uevent
