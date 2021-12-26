@@ -57,3 +57,7 @@ Other potential fixes/improvements to investigate:
 * OTG support.
 * Set `ep->dev` on `ep` allocation.
 * Don't pass `ep0_status` and `ep_status` through `dev`, get from `req` instead.
+
+## License
+
+The parts of code in this repository that are derived from the Linux kernel are covered by GPL-2.0. Everything else is currently covered by Apache-2.0. `SPDX-License-Identifier` marks the used license in each file.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+//
 // Originally written for https://github.com/google/syzkaller.
 //
 // Copyright 2019 syzkaller project authors. All rights reserved.

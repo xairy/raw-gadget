@@ -3,6 +3,7 @@
 // A helper program to issue ioctls to the usbtest driver.
 // Part of the USB Raw Gadget test suite.
 // Based on https://github.com/torvalds/linux/blob/master/tools/usb/testusb.c.
+// See https://github.com/xairy/raw-gadget for details.
 //
 // Andrey Konovalov <andreyknvl@gmail.com>
 

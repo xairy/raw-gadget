@@ -1,5 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+//
 // Emulates a USB device that aims to pass usbtest driver tests.
 // Part of the USB Raw Gadget test suite.
+// See https://github.com/xairy/raw-gadget for details.
 //
 // Andrey Konovalov <andreyknvl@gmail.com>
 
