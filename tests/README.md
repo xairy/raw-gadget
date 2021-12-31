@@ -29,7 +29,7 @@ Running the tests:
 
 6. On the gadget side: load `raw_gadget` module if not already loaded.
 
-7. On the gadget size: `./gadget DEVICE DRIVER`.
+7. On the gadget side: `./gadget DEVICE DRIVER`.
 
 8. On the host side: `./run_tests.py /dev/bus/usb/005/002 ./logs/UDC-raw_gadget.log`.
 
