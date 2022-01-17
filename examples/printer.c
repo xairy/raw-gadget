@@ -739,9 +739,10 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 			static char *pnp_string = "MFG:linux;MDL:g_printer;CLS:PRINTER;SN:1;";
 			int value = strlen(pnp_string);
 			memcpy(&io->data[0] + 2, pnp_string, value);
+			value += 2;
 			io->data[0] = (value >> 8) & 0xFF;
 			io->data[1] = value & 0xFF;
-			io->inner.length = value + 2;
+			io->inner.length = value;
 			return true;
 		}
 		case GET_PORT_STATUS:
