@@ -17,6 +17,7 @@ make
 ```
 
 ### For keyboard
+
 Run:
 
 ``` bash
@@ -30,6 +31,7 @@ sudo ./keyboard 20980000.usb 20980000.usb
 ```
 
 ### For printer
+
 Run:
 
 ``` bash

@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
+// This example emulates a USB printer. The code handles enumeration and
+// allows a Linux host to recognize a printer device (enabling it to read
+// from and write to /dev/usb/lp0 if the usblp kernel module is loaded)
+//
 // Part of the USB Raw Gadget examples.
 // See https://github.com/xairy/raw-gadget for details.
 //
