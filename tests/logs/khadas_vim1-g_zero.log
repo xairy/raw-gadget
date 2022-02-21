@@ -1,0 +1,90 @@
+[
+    {
+        "code": 0,
+        "test": "test 1: bulk, non-queued, OUT"
+    },
+    {
+        "code": 0,
+        "test": "test 2: bulk, non-queued, IN"
+    },
+    {
+        "code": 0,
+        "test": "test 3: bulk, non-queued, OUT, varied"
+    },
+    {
+        "code": 75,
+        "test": "test 4: bulk, non-queued, IN, varied"
+    },
+    {
+        "code": 0,
+        "test": "test 5: bulk, queued, OUT"
+    },
+    {
+        "code": 0,
+        "test": "test 6: bulk, queued, IN"
+    },
+    {
+        "code": 0,
+        "test": "test 7: bulk, queued, OUT, varied"
+    },
+    {
+        "code": 75,
+        "test": "test 8: bulk, queued, IN, varied"
+    },
+    {
+        "code": 32,
+        "test": "test 9: control, non-queued, sanity"
+    },
+    {
+        "code": 0,
+        "test": "test 10: control, queued"
+    },
+    {
+        "code": 0,
+        "test": "test 11: bulk, non-queued, unlinks, IN"
+    },
+    {
+        "code": 0,
+        "test": "test 12: bulk, non-queued, unlinks, OUT"
+    },
+    {
+        "code": 0,
+        "test": "test 13: bulk, ep halt set/clear"
+    },
+    {
+        "code": 0,
+        "test": "test 14: control, OUT, varied"
+    },
+    {
+        "code": 0,
+        "test": "test 17: bulk, DMA, odd address, OUT"
+    },
+    {
+        "code": 0,
+        "test": "test 18: bulk, DMA, odd address, IN"
+    },
+    {
+        "code": 0,
+        "test": "test 19: bulk, coherent, odd address, OUT"
+    },
+    {
+        "code": 0,
+        "test": "test 20: bulk, coherent, odd address, IN"
+    },
+    {
+        "code": 0,
+        "test": "test 21: control, unaligned, OUT, varied"
+    },
+    {
+        "code": 0,
+        "test": "test 24: bulk, queued, unlink, OUT"
+    },
+    {
+        "code": 95,
+        "test": "test 25: interrupt, non-queued, OUT"
+    },
+    {
+        "code": 95,
+        "test": "test 26: interrupt, non-queued, IN"
+    }
+]
