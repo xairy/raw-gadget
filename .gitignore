@@ -3,6 +3,7 @@
 *.o.ur-safe
 *.order
 *.mod.c
+*.mod
 *.swp
 *.symvers
 
