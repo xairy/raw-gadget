@@ -51,8 +51,10 @@ USB_UDC_NAME=dummy_udc
 
 ## Projects based on Raw Gadget
 
-* [syzkaller](https://github.com/google/syzkaller) — a kernel fuzzer, uses Raw Gadget for fuzzing Linux kernel [USB drivers](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
-* [usb-proxy](https://github.com/AristoChen/usb-proxy) — A USB proxy based on Raw Gadget and libusb.
+* [google/syzkaller](https://github.com/google/syzkaller) — a kernel fuzzer, uses Raw Gadget for fuzzing Linux kernel [USB drivers](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
+* [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy) — A USB proxy based on Raw Gadget and libusb.
+* [blegas78/usb-sniffify](https://github.com/blegas78/usb-sniffify) — Another USB proxy based on Raw Gadget and libusb.
+* [patryk4815/usb-proxy](https://github.com/patryk4815/usb-proxy) — A USB proxy based on Raw Gadget and written in Go.
 
 ## TODO
 
