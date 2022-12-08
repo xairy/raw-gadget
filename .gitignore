@@ -10,5 +10,6 @@
 dummy_hcd/.*
 raw_gadget/.*
 examples/keyboard
+examples/printer
 tests/gadget
 tests/testusb
