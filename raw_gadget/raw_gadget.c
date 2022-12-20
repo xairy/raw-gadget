@@ -84,8 +84,28 @@ static int raw_event_queue_add(struct raw_event_queue *queue,
 	return 0;
 }
 
+static inline int wait_with_timeout_maybe(struct completion *x,
+					  unsigned int timeout)
+{
+	unsigned long jiffies_timeout = MAX_SCHEDULE_TIMEOUT;
+	long ret;
+
+	if (timeout)
+		jiffies_timeout = msecs_to_jiffies(timeout);
+
+	ret = wait_for_completion_interruptible_timeout(x, jiffies_timeout);
+	switch (ret) {
+	case 0:
+		return -ETIME;
+	case -ERESTARTSYS:
+		return -EINTR;
+	default:
+		return 0;
+	}
+}
+
 static struct usb_raw_event *raw_event_queue_fetch(
-				struct raw_event_queue *queue)
+			struct raw_event_queue *queue, unsigned int timeout)
 {
 	int ret;
 	unsigned long flags;
@@ -96,14 +116,13 @@ static struct usb_raw_event *raw_event_queue_fetch(
 	 * there's at least one event queued by decrementing the semaphore,
 	 * and then take the lock to protect queue struct fields.
 	 */
-	ret = wait_for_completion_interruptible(&queue->sema);
-	if (ret)
+	ret = wait_with_timeout_maybe(&queue->sema, timeout);
+	if (ret < 0)
 		return ERR_PTR(ret);
 	spin_lock_irqsave(&queue->lock, flags);
 	/*
 	 * queue->size must have the same value as queue->sema counter (before
-	 * the wait_for_completion_interruptible call above), so this check is
-	 * a fail-safe.
+	 * the wait_with_timeout_maybe call above), so this check is a fail-safe.
 	 */
 	if (WARN_ON(!queue->size)) {
 		spin_unlock_irqrestore(&queue->lock, flags);
@@ -143,6 +162,7 @@ struct raw_ep {
 	struct usb_request	*req;
 	bool			urb_queued;
 	bool			disabling;
+	unsigned int		io_timeout;
 	ssize_t			status;
 };
 
@@ -174,6 +194,8 @@ struct raw_dev {
 	bool				gadget_registered;
 	struct usb_gadget		*gadget;
 	struct usb_request		*req;
+	unsigned int			event_fetch_timeout;
+	unsigned int			ep0_io_timeout;
 	bool				ep0_in_pending;
 	bool				ep0_out_pending;
 	bool				ep0_urb_queued;
@@ -634,17 +656,22 @@ static int raw_ioctl_event_fetch(struct raw_dev *dev, unsigned long value)
 	}
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	event = raw_event_queue_fetch(&dev->queue);
-	if (PTR_ERR(event) == -EINTR) {
-		dev_dbg(&dev->gadget->dev, "event fetching interrupted\n");
+	event = raw_event_queue_fetch(&dev->queue, dev->event_fetch_timeout);
+	switch (PTR_ERR(event)) {
+	case -ETIME:
+		dev_dbg(&dev->gadget->dev, "fail, timed out\n");
+		return -ETIME;
+	case -EINTR:
+		dev_dbg(&dev->gadget->dev, "fail, interrupted\n");
 		return -EINTR;
-	}
-	if (IS_ERR(event)) {
-		dev_err(&dev->gadget->dev, "failed to fetch event\n");
+	case -ENODEV:
+		dev_err(&dev->gadget->dev, "fail, internal error\n");
 		spin_lock_irqsave(&dev->lock, flags);
 		dev->state = STATE_DEV_FAILED;
 		spin_unlock_irqrestore(&dev->lock, flags);
 		return -ENODEV;
+	default:
+		break;
 	}
 	length = min(arg.length, event->length);
 	if (copy_to_user((void __user *)value, event, sizeof(*event) + length)) {
@@ -732,14 +759,15 @@ static int raw_process_ep0_io(struct raw_dev *dev, struct usb_raw_ep_io *io,
 		goto out_queue_failed;
 	}
 
-	ret = wait_for_completion_interruptible(&dev->ep0_done);
-	if (ret) {
-		dev_dbg(&dev->gadget->dev, "wait interrupted\n");
+	ret = wait_with_timeout_maybe(&dev->ep0_done, dev->ep0_io_timeout);
+	if (ret < 0) {
+		dev_dbg(&dev->gadget->dev, "fail, %s\n",
+			(ret == -ETIME) ? "timed out" : "interrupted");
 		usb_ep_dequeue(dev->gadget->ep0, dev->req);
 		wait_for_completion(&dev->ep0_done);
 		spin_lock_irqsave(&dev->lock, flags);
 		if (dev->ep0_status == -ECONNRESET)
-			dev->ep0_status = -EINTR;
+			dev->ep0_status = ret;
 		goto out_interrupted;
 	}
 
@@ -1118,14 +1146,15 @@ static int raw_process_ep_io(struct raw_dev *dev, struct usb_raw_ep_io *io,
 		goto out_queue_failed;
 	}
 
-	ret = wait_for_completion_interruptible(&done);
-	if (ret) {
-		dev_dbg(&dev->gadget->dev, "wait interrupted\n");
+	ret = wait_with_timeout_maybe(&done, ep->io_timeout);
+	if (ret < 0) {
+		dev_dbg(&dev->gadget->dev, "fail, %s\n",
+			(ret == -ETIME) ? "timed out" : "interrupted");
 		usb_ep_dequeue(ep->ep, ep->req);
 		wait_for_completion(&done);
 		spin_lock_irqsave(&dev->lock, flags);
 		if (ep->status == -ECONNRESET)
-			ep->status = -EINTR;
+			ep->status = ret;
 		goto out_interrupted;
 	}
 
@@ -1290,6 +1319,50 @@ out:
 	return ret;
 }
 
+static int raw_ioctl_set_timeout(struct raw_dev *dev, unsigned long value)
+{
+	struct usb_raw_timeout arg;
+	unsigned long flags;
+	int ret = 0;
+
+	if (copy_from_user(&arg, (void __user *)value, sizeof(arg)))
+		return -EFAULT;
+
+	spin_lock_irqsave(&dev->lock, flags);
+
+	switch (arg.type) {
+	case USB_RAW_TIMEOUT_EVENT_FETCH:
+		if (arg.param) {
+			ret = -EINVAL;
+			break;
+		}
+		dev->event_fetch_timeout = arg.timeout;
+		break;
+	case USB_RAW_TIMEOUT_EP0_IO:
+		if (arg.param) {
+			ret = -EINVAL;
+			break;
+		}
+		dev->ep0_io_timeout = arg.timeout;
+		break;
+	case USB_RAW_TIMEOUT_EP_IO:
+		if (arg.param >= dev->eps_num) {
+			dev_dbg(dev->dev, "fail, invalid endpoint\n");
+			ret = -EINVAL;
+			break;
+		}
+		dev->eps[arg.param].io_timeout = arg.timeout;
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return ret;
+}
+
 static long raw_ioctl(struct file *fd, unsigned int cmd, unsigned long value)
 {
 	struct raw_dev *dev = fd->private_data;
@@ -1349,6 +1422,9 @@ static long raw_ioctl(struct file *fd, unsigned int cmd, unsigned long value)
 	case USB_RAW_IOCTL_EP_SET_WEDGE:
 		ret = raw_ioctl_ep_set_clear_halt_wedge(
 					dev, value, true, false);
+		break;
+	case USB_RAW_IOCTL_SET_TIMEOUT:
+		ret = raw_ioctl_set_timeout(dev, value);
 		break;
 	default:
 		ret = -EINVAL;
