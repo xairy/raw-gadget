@@ -15,7 +15,6 @@
 #include <linux/kref.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
-#include <linux/semaphore.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
@@ -46,7 +45,7 @@ static DEFINE_IDA(driver_id_numbers);
 struct raw_event_queue {
 	/* See the comment in raw_event_queue_fetch() for locking details. */
 	spinlock_t		lock;
-	struct semaphore	sema;
+	struct completion	sema;
 	struct usb_raw_event	*events[RAW_EVENT_QUEUE_SIZE];
 	int			size;
 };
@@ -54,7 +53,7 @@ struct raw_event_queue {
 static void raw_event_queue_init(struct raw_event_queue *queue)
 {
 	spin_lock_init(&queue->lock);
-	sema_init(&queue->sema, 0);
+	init_completion(&queue->sema);
 	queue->size = 0;
 }
 
@@ -80,7 +79,7 @@ static int raw_event_queue_add(struct raw_event_queue *queue,
 		memcpy(&event->data[0], data, length);
 	queue->events[queue->size] = event;
 	queue->size++;
-	up(&queue->sema);
+	complete(&queue->sema);
 	spin_unlock_irqrestore(&queue->lock, flags);
 	return 0;
 }
@@ -97,13 +96,14 @@ static struct usb_raw_event *raw_event_queue_fetch(
 	 * there's at least one event queued by decrementing the semaphore,
 	 * and then take the lock to protect queue struct fields.
 	 */
-	ret = down_interruptible(&queue->sema);
+	ret = wait_for_completion_interruptible(&queue->sema);
 	if (ret)
 		return ERR_PTR(ret);
 	spin_lock_irqsave(&queue->lock, flags);
 	/*
 	 * queue->size must have the same value as queue->sema counter (before
-	 * the down_interruptible() call above), so this check is a fail-safe.
+	 * the wait_for_completion_interruptible call above), so this check is
+	 * a fail-safe.
 	 */
 	if (WARN_ON(!queue->size)) {
 		spin_unlock_irqrestore(&queue->lock, flags);
