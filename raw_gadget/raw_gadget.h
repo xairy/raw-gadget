@@ -161,6 +161,24 @@ struct usb_raw_eps_info {
 	struct usb_raw_ep_info	eps[USB_RAW_EPS_NUM_MAX];
 };
 
+enum usb_raw_timeout_type {
+	USB_RAW_TIMEOUT_INVALID = 0,
+
+	USB_RAW_TIMEOUT_EVENT_FETCH = 1,
+
+	USB_RAW_TIMEOUT_EP0_IO = 2,
+
+	USB_RAW_TIMEOUT_EP_IO = 3,
+
+	/* The list might grow in the future. */
+};
+
+struct usb_raw_timeout {
+	__u32	type;
+	__u32	param;
+	__u32	timeout;
+};
+
 /*
  * Initializes a Raw Gadget instance.
  * Accepts a pointer to the usb_raw_init struct as an argument.
@@ -255,5 +273,7 @@ struct usb_raw_eps_info {
 #define USB_RAW_IOCTL_EP_SET_HALT	_IOW('U', 13, __u32)
 #define USB_RAW_IOCTL_EP_CLEAR_HALT	_IOW('U', 14, __u32)
 #define USB_RAW_IOCTL_EP_SET_WEDGE	_IOW('U', 15, __u32)
+
+#define USB_RAW_IOCTL_SET_TIMEOUT	_IOW('U', 16, struct usb_raw_timeout)
 
 #endif /* _UAPI__LINUX_USB_RAW_GADGET_H */
