@@ -61,14 +61,14 @@ enum usb_raw_event_type {
 struct usb_raw_event {
 	__u32		type;
 	__u32		length;
-	__u8		data[0];
+	__u8		data[];
 };
 
 struct usb_raw_ep_io {
 	__u16		ep;
 	__u16		flags;
 	__u32		length;
-	__u8		data[0];
+	__u8		data[];
 };
 
 #define USB_RAW_EPS_NUM_MAX	30
