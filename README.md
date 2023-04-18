@@ -1,7 +1,7 @@
 Raw Gadget
 ==========
 
-__Note__: most likely you need GadgetFS, not Raw Gadget. See the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
+__Note__: Raw Gadget is a debugging feature and it should not be used in production. Use GadgetFS instead. See the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
 [USB Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a low-level interface for the Linux USB Gadget subsystem.
 It can be used to emulate physical USB devices with [special hardware](/README.md#usb-device-controllers), or virtual ones (for the kernel it's running on) with [Dummy HCD/UDC](/dummy_hcd).
