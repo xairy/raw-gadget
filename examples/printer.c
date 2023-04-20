@@ -384,7 +384,7 @@ void log_event(struct usb_raw_event *event) {
 		log_control_request((struct usb_ctrlrequest *)&event->data[0]);
 		break;
 	default:
-		printf("event: unknown, length: %u\n", event->length);
+		printf("event: %d (unknown), length: %u\n", event->type, event->length);
 	}
 }
 
@@ -693,9 +693,9 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 					sizeof(io->data), false);
 			return true;
 		case USB_REQ_SET_CONFIGURATION:
-			// If the host PC is installed with CUPS, this will be
-			// triggered for second time, so we should not enable
-			// ep and create thread again
+			// If CUPS is installed on the host PC, this request
+			// will be sent again. So don't enable endpoints nor
+			// create threads twice.
 			if (ep_bulk_out == -1) {
 				ep_bulk_out = usb_raw_ep_enable(fd,
 							&usb_endpoint_bulk_out);
@@ -706,20 +706,18 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 							&usb_endpoint_bulk_in);
 				printf("bulk_in: ep = #%d\n", ep_bulk_in);
 			}
-			if (!ep_bulk_out_thread) {
+			if (!ep_bulk_out_thread)
 				pthread_create(&ep_bulk_out_thread, 0,
 					       ep_bulk_out_loop, (void *)(long)fd);
-			}
-			if (!ep_bulk_in_thread) {
+			if (!ep_bulk_in_thread)
 				pthread_create(&ep_bulk_in_thread, 0,
 					       ep_bulk_in_loop, (void *)(long)fd);
-			}
 			usb_raw_vbus_draw(fd, usb_config.bMaxPower);
 			usb_raw_configure(fd);
 			io->inner.length = 0;
 			return true;
 		case USB_REQ_SET_INTERFACE:
-			// TODO: enable/disable endpoints, etc.
+			// Do nothing, as the device only has one interface.
 			io->inner.length = 0;
 			return true;
 		case USB_REQ_GET_INTERFACE:
@@ -768,8 +766,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 }
 
 void ep0_loop(int fd) {
-	bool done = false;
-	while (!done) {
+	while (true) {
 		struct usb_raw_control_event event;
 		event.inner.type = 0;
 		event.inner.length = sizeof(event.ctrl);
@@ -777,11 +774,15 @@ void ep0_loop(int fd) {
 		usb_raw_event_fetch(fd, (struct usb_raw_event *)&event);
 		log_event((struct usb_raw_event *)&event);
 
-		if (event.inner.type == USB_RAW_EVENT_CONNECT)
+		if (event.inner.type == USB_RAW_EVENT_CONNECT) {
 			process_eps_info(fd);
-
-		if (event.inner.type != USB_RAW_EVENT_CONTROL)
 			continue;
+		}
+
+		if (event.inner.type != USB_RAW_EVENT_CONTROL) {
+			printf("fail: unknown event\n");
+			exit(EXIT_FAILURE);
+		}
 
 		struct usb_raw_control_io io;
 		io.inner.ep = 0;
@@ -797,12 +798,12 @@ void ep0_loop(int fd) {
 
 		if (event.ctrl.wLength < io.inner.length)
 			io.inner.length = event.ctrl.wLength;
-		int rv = -1;
+
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&io);
+			int rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&io);
 			printf("ep0: transferred %d bytes (in)\n", rv);
 		} else {
-			rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&io);
+			int rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&io);
 			printf("ep0: transferred %d bytes (out)\n", rv);
 		}
 	}

@@ -412,7 +412,7 @@ void log_event(struct usb_raw_event *event) {
 		log_control_request((struct usb_ctrlrequest *)&event->data[0]);
 		break;
 	default:
-		printf("event: unknown, length: %u\n", event->length);
+		printf("event: %d (unknown), length: %u\n", event->type, event->length);
 	}
 }
 
@@ -724,6 +724,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 	case USB_TYPE_CLASS:
 		switch (event->ctrl.bRequest) {
 		case HID_REQ_SET_REPORT:
+			// This is an OUT request, so don't initialize data.
 			io->inner.length = 1;
 			*done = true;
 			return true;
@@ -752,10 +753,11 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 	}
 }
 
-// Not technically a loop as we stop processing ep0 requests to make the
-// example simpler.
 void ep0_loop(int fd) {
+	// To simplify the example, stop processing EP0 events when either
+	// HID_REQ_SET_REPORT or HID_REQ_SET_PROTOCOL request is received.
 	bool done = false;
+
 	while (!done) {
 		struct usb_raw_control_event event;
 		event.inner.type = 0;
@@ -764,11 +766,15 @@ void ep0_loop(int fd) {
 		usb_raw_event_fetch(fd, (struct usb_raw_event *)&event);
 		log_event((struct usb_raw_event *)&event);
 
-		if (event.inner.type == USB_RAW_EVENT_CONNECT)
+		if (event.inner.type == USB_RAW_EVENT_CONNECT) {
 			process_eps_info(fd);
-
-		if (event.inner.type != USB_RAW_EVENT_CONTROL)
 			continue;
+		}
+
+		if (event.inner.type != USB_RAW_EVENT_CONTROL) {
+			printf("fail: unknown event\n");
+			exit(EXIT_FAILURE);
+		}
 
 		struct usb_raw_control_io io;
 		io.inner.ep = 0;
@@ -784,12 +790,12 @@ void ep0_loop(int fd) {
 
 		if (event.ctrl.wLength < io.inner.length)
 			io.inner.length = event.ctrl.wLength;
-		int rv = -1;
+
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&io);
+			int rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&io);
 			printf("ep0: transferred %d bytes (in)\n", rv);
 		} else {
-			rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&io);
+			int rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&io);
 			printf("ep0: transferred %d bytes (out)\n", rv);
 		}
 	}
@@ -829,6 +835,7 @@ int main(int argc, char **argv) {
 	usb_raw_run(fd);
 
 	ep0_loop(fd);
+
 	ep_int_in_loop(fd);
 
 	close(fd);

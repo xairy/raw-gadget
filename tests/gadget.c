@@ -377,7 +377,7 @@ void log_event(struct usb_raw_event *event) {
 		log_control_request((struct usb_ctrlrequest *)&event->data[0]);
 		break;
 	default:
-		printf("event: unknown, length: %u\n", event->length);
+		printf("event: %d (unknown), length: %u\n", event->type, event->length);
 	}
 }
 
@@ -888,7 +888,6 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 		case VENDOR_REQ_IN:
 			assert(event->ctrl.bRequestType & USB_DIR_IN);
 			assert(event->ctrl.wLength <= VENDOR_BUFFER_SIZE);
-			// TODO: allocate buffer dynamically.
 			memcpy(&io->data[0], &vendor_buffer[0],
 						event->ctrl.wLength);
 			io->inner.length = event->ctrl.wLength;
@@ -905,8 +904,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 }
 
 void ep0_loop(int fd) {
-	bool done = false;
-	while (!done) {
+	while (true) {
 		struct usb_raw_control_event event;
 		event.inner.type = 0;
 		event.inner.length = sizeof(event.ctrl);
@@ -914,11 +912,15 @@ void ep0_loop(int fd) {
 		usb_raw_event_fetch(fd, (struct usb_raw_event *)&event);
 		log_event((struct usb_raw_event *)&event);
 
-		if (event.inner.type == USB_RAW_EVENT_CONNECT)
+		if (event.inner.type == USB_RAW_EVENT_CONNECT) {
 			process_eps_info(fd);
-
-		if (event.inner.type != USB_RAW_EVENT_CONTROL)
 			continue;
+		}
+
+		if (event.inner.type != USB_RAW_EVENT_CONTROL) {
+			printf("fail: unknown event\n");
+			exit(EXIT_FAILURE);
+		}
 
 		struct usb_raw_control_io io;
 		io.inner.ep = 0;
@@ -934,6 +936,7 @@ void ep0_loop(int fd) {
 
 		if (event.ctrl.wLength < io.inner.length)
 			io.inner.length = event.ctrl.wLength;
+
 		int rv = -1;
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
 			rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&io);
