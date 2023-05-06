@@ -7,33 +7,33 @@ All tests are supposed to be first run with `g_zero` kernel module as a baseline
 
 ## How to Run
 
-Note, that `usbtest` and `g_zero` modules can be native to the kernels running on the host and gadget sides, while `dummy_hcd` and `raw_gadget` are better be built manually (to make sure they are up-to-date).
+Note: `usbtest` and `g_zero` modules can be native to the kernels running on the host and gadget sides, while `dummy_hcd` and `raw_gadget` are better be built manually (to make sure they are up-to-date).
 
-Note, that when using Dummy UDC, the host and the device are the same machine.
+Note: when using Dummy UDC, the host and the device are the same machine.
 
-Note, that `g_zero` binds to the first available UDC, make sure it's the right one.
+Note: `g_zero` binds to the first available UDC; make sure it's the right one.
 
 Running the tests:
 
 0. On both host and gadget sides: `make`.
 
-1. On the host side: `./insmod_usbtest.sh`.
+1. On host side: `./insmod_usbtest.sh`.
 
-2. On the gadget side: `./insmod_g_zero.sh`
+2. On gadget side: `./insmod_g_zero.sh`
 
-3. On the host side: find out the device address via `lsusb`.
+3. On host side: find out the device address via `lsusb`.
 
-4. On the host side: `./run_tests.py /dev/bus/usb/005/002 ./logs/UDC-g_zero.log`.
+4. On host side: `./run_tests.py /dev/bus/usb/005/002 ./logs/UDC-g_zero.log`.
 
-5. On the gadget side: `rmmod g_zero`.
+5. On gadget side: `rmmod g_zero`.
 
-6. On the gadget side: load `raw_gadget` module if not already loaded.
+6. On gadget side: load `raw_gadget` module if not already loaded.
 
-7. On the gadget side: `./gadget DEVICE DRIVER`.
+7. On gadget side: `./gadget DEVICE DRIVER`.
 
-8. On the host side: `./run_tests.py /dev/bus/usb/005/002 ./logs/UDC-raw_gadget.log`.
+8. On host side: `./run_tests.py /dev/bus/usb/005/002 ./logs/UDC-raw_gadget.log`.
 
-9. On the host side: `./format_results.py ./logs/UDC-raw_gadget.log ./logs/UDC-g_zero.log`.
+9. On host side: `./format_results.py ./logs/UDC-raw_gadget.log ./logs/UDC-g_zero.log`.
 
 ## TODO
 

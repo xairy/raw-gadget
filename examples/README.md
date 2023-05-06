@@ -1,10 +1,11 @@
 Raw Gadget Examples
 ===================
 
-This is an example of emulating a USB keyboard or a USB printer with Raw Gadget.
+This directory contains two examples of using Raw Gadget.
+`keyboard.c` emulates a USB keyboard and `printer.c` emulates the enumeration stage of a USB printer.
 
-When used as is it requires the [Dummy HCD/UDC](/dummy_hcd) module.
-If you're willing to use it with a physical USB controller instead of Dummy UDC, you need to provide proper device and driver names as arguments (e.g. both are `20980000.usb` for Raspberry Pi Zero).
+When run as is, the examples rely on the [Dummy HCD/UDC](/dummy_hcd) module to emulate virtual devices that connect to the kernel they are running on.
+If you want to use them with a physical UDC instead, you need to provide the proper device and driver names as arguments (e.g. both are `20980000.usb` for Raspberry Pi Zero).
 
 Also see [tests/gadget.c](/tests/gadget.c) for an example of a device that is used with the Raw Gadget testing suite.
 

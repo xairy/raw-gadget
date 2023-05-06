@@ -4,7 +4,7 @@ Raw Gadget
 __Note__: Raw Gadget is a debugging feature and it should not be used in production. Use GadgetFS instead. See the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
 [USB Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a low-level interface for the Linux USB Gadget subsystem.
-It can be used to emulate physical USB devices with [special hardware](/README.md#usb-device-controllers), or virtual ones (for the kernel it's running on) with [Dummy HCD/UDC](/dummy_hcd).
+It can be used to emulate USB devices: physical ones with [special hardware](/README.md#usb-device-controllers), or virtual ones with [Dummy HCD/UDC](/dummy_hcd) (virtual devices get connected to the kernel Raw Gadget is running on).
 This repository contains instructions and [examples](/examples) for using Raw Gadget.
 
 Raw Gadget has been [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into mainline Linux kernel in `5.7`.
@@ -12,12 +12,13 @@ There's no need to use `5.7+` kernels, see [dummy_hcd](/dummy_hcd) and [raw_gadg
 The modules should be compatible with kernel versions down to `4.14`, see the table below.
 
 Building kernel modules requires kernel headers.
-On desktop Ubuntu you can get them by installing `` linux-headers-`uname -r` ``.
-On Raspberry Pi Zero follow [these instructions](https://github.com/notro/rpi-source/wiki).
+On desktop Ubuntu, you can get them by installing `` linux-headers-`uname -r` ``.
+On Raspberry Pi Zero, follow [these instructions](https://github.com/notro/rpi-source/wiki).
 
 ## USB Device Controllers
 
-USB Raw Gadget requires the user to provide UDC device and driver names, see [examples](/examples).
+Raw Gadget requires the user to provide UDC (USB Device Controller) device and driver names.
+This allows using Raw Gadget with a particular UDC if the system has a few of them.
 
 UDC device name can be found in `/sys/class/udc/`:
 
@@ -33,7 +34,7 @@ $ cat /sys/class/udc/dummy_udc.0/uevent
 USB_UDC_NAME=dummy_udc
 ```
 
-"Works" in the table below means that the UDC passes the provided [tests](/tests), which only cover a subset of functionality and therefore have [limitations](/tests#todo).
+Below is a table of UDCs that were tested with Raw Gadget.
 
 | Hardware | Kernel | Driver | Device | Works? |
 | :---: | :---: | :---: | :---: | :---: |
@@ -48,6 +49,9 @@ USB_UDC_NAME=dummy_udc
 | BeagleBone AI | `4.14.108-ti-r131` | `48890000.usb` | `dwc3-gadget` | Not yet |
 | [EC3380-AB](http://www.hwtools.net/Adapter/EC3380-AB.html) | `5.3.0-45-generic` | `net2280` | `0000:04:00.0` (e.g.) | Partially,<br />`net2280` buggy |
 | Odroid C2 | `3.14.79-116` | `dwc_otg_pcd` | `dwc2_a` | No, kernel too old |
+
+"Works" in the table above means that the UDC passes the provided [tests](/tests).
+These tests only cover a [subset of functionality](/tests#todo).
 
 ## Projects based on Raw Gadget
 
