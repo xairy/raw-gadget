@@ -15,6 +15,7 @@ Building kernel modules requires kernel headers.
 On desktop Ubuntu, you can get them by installing `` linux-headers-`uname -r` ``.
 On Raspberry Pi Zero, follow [these instructions](https://github.com/notro/rpi-source/wiki).
 
+
 ## USB Device Controllers
 
 Raw Gadget requires the user to provide UDC (USB Device Controller) device and driver names.
@@ -53,12 +54,55 @@ Below is a table of UDCs that were tested with Raw Gadget.
 "Works" in the table above means that the UDC passes the provided [tests](/tests).
 These tests only cover a [subset of functionality](/tests#todo).
 
+
+## Facedancer backend
+
+There's a [prototype](https://github.com/xairy/Facedancer/tree/rawgadget) of a Facedancer backend based on Raw Gadget.
+
+This backend relies on a few out-of-tree Raw Gadget patches present in the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
+Once the backend is thoroughly tested, these patches will be submitted to the mainline.
+
+Raw Gadget-based backend accepts a few parameters through environment variables:
+
+| Parameter | Description | Default value |
+| :---: | :---: | :---: |
+| `RG_UDC_DRIVER` | UDC driver name | `dummy_udc` |
+| `RG_UDC_DEVICE` | UDC device name | `dummy_udc.0` |
+| `RG_USB_SPEED` | USB device speed | `3` (High Speed) |
+
+Example of using Facedancer with Raw Gadget to emulate a USB keyboard on a Raspberry Pi 4:
+
+``` bash
+export BACKEND=rawgadget
+export RG_UDC_DRIVER=fe980000.usb
+export RG_UDC_DEVICE=fe980000.usb
+./legacy-applets/facedancer-keyboard.py
+```
+
+Note: Some Facedancer examples might fail if a wrong USB speed is specified.
+Failures happen either with `EINVAL` in `USB_RAW_IOCTL_EP_ENABLE`, with `ESHUTDOWN` in `USB_RAW_IOCTL_EP_READ/WRITE`, or can be completely random.
+For example, with Dummy UDC, `examples/ftdi-echo.py` requires `RG_USB_SPEED=2` and `legacy-applets/facedancer-ftdi.py` requires `RG_USB_SPEED=3`.
+In turn, `legacy-applets/facedancer-umass.py` requires `RG_USB_SPEED=2`.
+
+Note: This backend is still a prototype.
+Outstanding tasks:
+
+1. Make sure that all required backend callbacks are implemented. For example, `read_from_endpoint` should probably be implemented.
+2. Provide a common [Python wrapper](#1) for Raw Gadget ioctls, and use it in the backend.
+3. Finalize and submit out-of-tree Raw Gadget patches to the mainline.
+
+Note: Facedancer assumes that every backend supports non-blocking I/O, which is not the case for Raw Gadget.
+To work around this limitation, the backend prototype relies on timeouts.
+The proper solution to this issue would be to add non-blocking I/O support to Raw Gadget.
+
+
 ## Projects based on Raw Gadget
 
 * [google/syzkaller](https://github.com/google/syzkaller) — a kernel fuzzer, uses Raw Gadget for fuzzing Linux kernel [USB drivers](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
 * [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy) — A USB proxy based on Raw Gadget and libusb.
 * [blegas78/usb-sniffify](https://github.com/blegas78/usb-sniffify) — Another USB proxy based on Raw Gadget and libusb.
 * [patryk4815/usb-proxy](https://github.com/patryk4815/usb-proxy) — A USB proxy based on Raw Gadget and written in Go.
+
 
 ## TODO
 
@@ -72,6 +116,7 @@ Other potential fixes/improvements to investigate:
 * OTG support.
 * Set `ep->dev` on `ep` allocation.
 * Don't pass `ep0_status` and `ep_status` through `dev`, get from `req` instead.
+
 
 ## License
 
