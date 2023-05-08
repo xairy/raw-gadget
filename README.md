@@ -19,6 +19,8 @@ Building the Raw Gadget and Dummy HCD/UDC kernel modules requires kernel headers
 On desktop Ubuntu, you can get them by installing `` linux-headers-`uname -r` ``.
 On a Raspberry Pi, follow [these instructions](https://github.com/notro/rpi-source/wiki).
 
+See the [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk [[video](https://www.youtube.com/watch?v=AT3PQjKxa_c)] for details about Linux Host and Gadget USB subsystems and Raw Gadget.
+
 
 ## USB Device Controllers
 
