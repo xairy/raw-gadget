@@ -99,6 +99,59 @@ To work around this limitation, the backend prototype relies on timeouts.
 The proper solution to this issue would be to add non-blocking I/O support to Raw Gadget.
 
 
+## Troubleshooting
+
+As generic guidance to troubleshooting Raw Gadget errors:
+
+1. Switch to the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
+
+    This branch contains fixes for some known issues and prints more debug output.
+
+2. Enable debug output for Raw Gadget (and Dummy HCD/UDC if you're using it).
+
+    Add the following line to the very beginning of `raw_gadget/raw_gadget.c`:
+
+    ``` c
+    #define DEBUG
+    ```
+
+    Rebuild and reinsert the module.
+
+3. Check the kernel log via `dmesg` to figure out what is failing.
+
+
+### No such device
+
+`USB_RAW_IOCTL_RUN` returns `ENODEV`, error code `19`:
+
+```
+ioctl(USB_RAW_IOCTL_RUN): No such device
+```
+
+This error means that bad UDC driver/device names were provided.
+Make sure that the UDC driver module is loaded.
+Also see [USB Device Controllers](#usb-device-controllers) about UDC names.
+
+
+### Cannot send after transport endpoint shutdown
+
+Endpoint operations return `ESHUTDOWN`, error code `108`:
+
+```
+ioctl(USB_RAW_IOCTL_EP0_WRITE): Cannot send after transport endpoint shutdown
+```
+
+This error likely means that the emulated USB device did something wrong.
+For example, tried to perform an endpoint operation before the device is configured.
+Or provided an endpoint descriptor that does not match the USB device speed.
+As a result, either the UDC driver or the host decided to disconnect the device.
+
+Note: During device operation, the host might decide to reconfigure the device.
+The UDC driver will then issue a reset or a disconnect event (depends on which UDC driver is in use).
+After this, endpoint operations will fail with `ESHUTDOWN` until the device emulation code calls `USB_RAW_IOCTL_CONFIGURE` again when handling a new `SET_CONFIGURATION` request.
+Getting notifications about the reset and disconnect events requires using the Raw Gadget patches from the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
+
+
 ## Projects based on Raw Gadget
 
 * [google/syzkaller](https://github.com/google/syzkaller) — a kernel fuzzer, uses Raw Gadget for fuzzing Linux kernel [USB drivers](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
