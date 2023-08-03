@@ -12,7 +12,7 @@ Emulating virtual devices requires no hardware and instead relies on the [Dummy 
 This repository contains instructions and [examples](/examples) for using Raw Gadget.
 
 Raw Gadget has been [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline Linux kernel in `5.7`.
-There's no need to use `5.7+` kernels; see [dummy_hcd](/dummy_hcd) and [raw_gadget](/raw_gadget) for information on how to build and `insmod` corresponding modules on older kernels.
+There's no need to use `5.7+` kernels; see [raw_gadget](/raw_gadget) and [dummy_hcd](/dummy_hcd) for information on how to build and `insmod` corresponding modules on older kernels.
 The modules should be compatible with kernel versions down to `4.14`; see the table below.
 
 Building the Raw Gadget and Dummy HCD/UDC kernel modules requires kernel headers.
