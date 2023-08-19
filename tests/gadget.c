@@ -37,9 +37,13 @@ struct usb_raw_init {
 };
 
 enum usb_raw_event_type {
-	USB_RAW_EVENT_INVALID,
-	USB_RAW_EVENT_CONNECT,
-	USB_RAW_EVENT_CONTROL,
+	USB_RAW_EVENT_INVALID = 0,
+	USB_RAW_EVENT_CONNECT = 1,
+	USB_RAW_EVENT_CONTROL = 2,
+	USB_RAW_EVENT_SUSPEND = 3,
+	USB_RAW_EVENT_RESUME = 4,
+	USB_RAW_EVENT_RESET = 5,
+	USB_RAW_EVENT_DISCONNECT = 6,
 };
 
 struct usb_raw_event {
@@ -375,6 +379,18 @@ void log_event(struct usb_raw_event *event) {
 	case USB_RAW_EVENT_CONTROL:
 		printf("event: control, length: %u\n", event->length);
 		log_control_request((struct usb_ctrlrequest *)&event->data[0]);
+		break;
+	case USB_RAW_EVENT_SUSPEND:
+		printf("event: suspend");
+		break;
+	case USB_RAW_EVENT_RESUME:
+		printf("event: resume");
+		break;
+	case USB_RAW_EVENT_RESET:
+		printf("event: reset");
+		break;
+	case USB_RAW_EVENT_DISCONNECT:
+		printf("event: disconnect");
 		break;
 	default:
 		printf("event: %d (unknown), length: %u\n", event->type, event->length);
@@ -917,10 +933,8 @@ void ep0_loop(int fd) {
 			continue;
 		}
 
-		if (event.inner.type != USB_RAW_EVENT_CONTROL) {
-			printf("fail: unknown event\n");
-			exit(EXIT_FAILURE);
-		}
+		if (event.inner.type != USB_RAW_EVENT_CONTROL)
+			continue;
 
 		struct usb_raw_control_io io;
 		io.inner.ep = 0;
