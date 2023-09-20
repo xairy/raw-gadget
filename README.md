@@ -1,9 +1,13 @@
 Raw Gadget
 ==========
 
-__Note__: Raw Gadget is a debugging feature, and it should not be used in production. Use GadgetFS instead. See the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
+__Note__:
+Do not use Raw Gadget in production for emulating USB devices with concrete classes.
+Instead, use the [composite framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
+Raw Gadget is intended for fuzzing and exploiting USB hosts or for proxying USB devices.
 
 [Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a Linux kernel module that implements a low-level interface for the Linux USB Gadget subsystem.
+It is similar to GadgetFS, but provides greater flexibility; see all the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
 Raw Gadget can be used to emulate USB devices, both physical and virtual ones.
 Emulating physical devices requires a Linux board with a [USB Device Controller](/README.md#usb-device-controllers) (UDC), such as a Raspberry Pi.
@@ -103,7 +107,7 @@ The proper solution to this issue would be to add non-blocking I/O support to Ra
 
 ## Troubleshooting
 
-As generic guidance to troubleshooting Raw Gadget errors:
+As a generic guidance to troubleshooting Raw Gadget errors:
 
 1. Switch to the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
 
@@ -111,13 +115,13 @@ As generic guidance to troubleshooting Raw Gadget errors:
 
 2. Enable debug output for Raw Gadget (and Dummy HCD/UDC if you're using it).
 
-    Add the following line to the very beginning of `raw_gadget/raw_gadget.c`:
+    To do this, add the following line to the very beginning of `raw_gadget/raw_gadget.c`:
 
     ``` c
     #define DEBUG
     ```
 
-    Rebuild and reinsert the module.
+    Then rebuild and reinsert the module.
 
 3. Check the kernel log via `dmesg` to figure out what is failing.
 
@@ -143,15 +147,18 @@ Endpoint operations return `ESHUTDOWN`, error code `108`:
 ioctl(USB_RAW_IOCTL_EP0_WRITE): Cannot send after transport endpoint shutdown
 ```
 
-This error likely means that the emulated USB device did something wrong.
-For example, tried to perform an endpoint operation before the device is configured.
-Or provided an endpoint descriptor that does not match the USB device speed.
-As a result, either the UDC driver or the host decided to disconnect the device.
+This error means that the emulated USB device tried to send data on a disabled endpoint.
+
+This usually happens when the device emulation code does something wrong.
+For example, tries to perform an endpoint operation before the device was configured.
+Or provides an endpoint descriptor that does not match the USB device speed.
+As a result, either the UDC driver or the host decides to disconnect the device.
 
 Note: During device operation, the host might decide to reconfigure the device.
 The UDC driver will then issue a reset or a disconnect event (depends on which UDC driver is in use).
-After this, endpoint operations will fail with `ESHUTDOWN` until the device emulation code calls `USB_RAW_IOCTL_CONFIGURE` again when handling a new `SET_CONFIGURATION` request.
+After this, any attempt to issue an endpoint operation will fail with `ESHUTDOWN` until the device emulation code calls `USB_RAW_IOCTL_CONFIGURE` again when handling a new `SET_CONFIGURATION` request.
 Getting notifications about the reset and disconnect events requires using the Raw Gadget patches from the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
+Note that if an endpoint operation fails with `ESHUTDOWN`, the Raw Gadget device will be put into the `STATE_DEV_FAILED` state and stop functioning.
 
 
 ## Projects based on Raw Gadget
