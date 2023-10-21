@@ -190,6 +190,15 @@ int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor *desc) {
 	return rv;
 }
 
+int usb_raw_ep_disable(int fd, int ep) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_EP_DISABLE, ep);
+	if (rv < 0) {
+		perror("ioctl(USB_RAW_IOCTL_EP_DISABLE)");
+		exit(EXIT_FAILURE);
+	}
+	return rv;
+}
+
 int usb_raw_ep_read(int fd, struct usb_raw_ep_io *io) {
 	int rv = ioctl(fd, USB_RAW_IOCTL_EP_READ, io);
 	if (rv < 0) {
@@ -206,6 +215,10 @@ int usb_raw_ep_write(int fd, struct usb_raw_ep_io *io) {
 		exit(EXIT_FAILURE);
 	}
 	return rv;
+}
+
+int usb_raw_ep_write_may_fail(int fd, struct usb_raw_ep_io *io) {
+	return ioctl(fd, USB_RAW_IOCTL_EP_WRITE, io);
 }
 
 void usb_raw_configure(int fd) {
@@ -653,9 +666,9 @@ void process_eps_info(int fd) {
 			continue;
 	}
 
-	int int_in_addr = usb_endpoint_num(&usb_endpoint);
-	assert(int_in_addr != 0);
-	printf("int_in: addr = %u\n", int_in_addr);
+	int ep_int_in_addr = usb_endpoint_num(&usb_endpoint);
+	assert(ep_int_in_addr != 0);
+	printf("ep_int_in: addr = %u\n", ep_int_in_addr);
 }
 
 /*----------------------------------------------------------------------*/
@@ -679,6 +692,7 @@ struct usb_raw_int_io {
 
 int ep_int_in = -1;
 pthread_t ep_int_in_thread;
+bool ep_int_in_thread_spawned = false;
 
 void *ep_int_in_loop(void *arg) {
 	int fd = (int)(long)arg;
@@ -691,13 +705,28 @@ void *ep_int_in_loop(void *arg) {
 	while (true) {
 		memcpy(&io.inner.data[0],
 				"\x00\x00\x1b\x00\x00\x00\x00\x00", 8);
-		int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-		printf("int_in: key down: %d\n", rv);
+		int rv = usb_raw_ep_write_may_fail(fd,
+						(struct usb_raw_ep_io *)&io);
+		if (rv < 0 && errno == ESHUTDOWN) {
+			printf("ep_int_in: device was likely reset, exiting\n");
+			break;
+		} else if (rv < 0) {
+			perror("usb_raw_ep_write_may_fail()");
+			exit(EXIT_FAILURE);
+		}
+		printf("ep_int_in: key down: %d\n", rv);
 
 		memcpy(&io.inner.data[0],
 				"\x00\x00\x00\x00\x00\x00\x00\x00", 8);
-		rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-		printf("int_in: key up: %d\n", rv);
+		rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
+		if (rv < 0 && errno == ESHUTDOWN) {
+			printf("ep_int_in: device was likely reset, exiting\n");
+			break;
+		} else if (rv < 0) {
+			perror("usb_raw_ep_write_may_fail()");
+			exit(EXIT_FAILURE);
+		}
+		printf("ep_int_in: key up: %d\n", rv);
 
 		sleep(1);
 	}
@@ -751,12 +780,15 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 			break;
 		case USB_REQ_SET_CONFIGURATION:
 			ep_int_in = usb_raw_ep_enable(fd, &usb_endpoint);
+			printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
 			int rv = pthread_create(&ep_int_in_thread, 0,
 					ep_int_in_loop, (void *)(long)fd);
 			if (rv != 0) {
 				perror("pthread_create(ep_int_in)");
 				exit(EXIT_FAILURE);
 			}
+			ep_int_in_thread_spawned = true;
+			printf("ep0: spawned ep_int_in thread\n");
 			usb_raw_vbus_draw(fd, usb_config.bMaxPower);
 			usb_raw_configure(fd);
 			io->inner.length = 0;
@@ -811,6 +843,26 @@ void ep0_loop(int fd) {
 
 		if (event.inner.type == USB_RAW_EVENT_CONNECT) {
 			process_eps_info(fd);
+			continue;
+		}
+
+		if (event.inner.type == USB_RAW_EVENT_RESET) {
+			if (ep_int_in_thread_spawned) {
+				printf("ep0: stopping ep_int_in thread\n");
+				// Even though normally, on a device reset,
+				// the endpoint threads should exit due to
+				// ESHUTDOWN, let's also attempt to cancel
+				// them just in case.
+				pthread_cancel(ep_int_in_thread);
+				int rv = pthread_join(ep_int_in_thread, NULL);
+				if (rv != 0) {
+					perror("pthread_join(ep_int_in)");
+					exit(EXIT_FAILURE);
+				}
+				usb_raw_ep_disable(fd, ep_int_in);
+				ep_int_in_thread_spawned = false;
+				printf("ep0: stopped ep_int_in thread\n");
+			}
 			continue;
 		}
 
