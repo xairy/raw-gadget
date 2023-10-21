@@ -8,7 +8,7 @@ CFLAGS=-O2 -Wall -g
 all: keyboard printer
 
 keyboard: keyboard.c
-	$(CC) -o $@ $< $(CFLAGS)
+	$(CC) -o $@ $< $(CFLAGS) -lpthread
 
 printer: printer.c
 	$(CC) -o $@ $< $(CFLAGS) -lpthread

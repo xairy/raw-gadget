@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -14,14 +15,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <linux/types.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#include <linux/types.h>
 #include <linux/hid.h>
 #include <linux/usb/ch9.h>
 
@@ -677,9 +678,35 @@ struct usb_raw_int_io {
 };
 
 int ep_int_in = -1;
+pthread_t ep_int_in_thread;
+
+void *ep_int_in_loop(void *arg) {
+	int fd = (int)(long)arg;
+
+	struct usb_raw_int_io io;
+	io.inner.ep = ep_int_in;
+	io.inner.flags = 0;
+	io.inner.length = 8;
+
+	while (true) {
+		memcpy(&io.inner.data[0],
+				"\x00\x00\x1b\x00\x00\x00\x00\x00", 8);
+		int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
+		printf("int_in: key down: %d\n", rv);
+
+		memcpy(&io.inner.data[0],
+				"\x00\x00\x00\x00\x00\x00\x00\x00", 8);
+		rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
+		printf("int_in: key up: %d\n", rv);
+
+		sleep(1);
+	}
+
+	return NULL;
+}
 
 bool ep0_request(int fd, struct usb_raw_control_event *event,
-				struct usb_raw_control_io *io, bool *done) {
+				struct usb_raw_control_io *io) {
 	switch (event->ctrl.bRequestType & USB_TYPE_MASK) {
 	case USB_TYPE_STANDARD:
 		switch (event->ctrl.bRequest) {
@@ -724,6 +751,12 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 			break;
 		case USB_REQ_SET_CONFIGURATION:
 			ep_int_in = usb_raw_ep_enable(fd, &usb_endpoint);
+			int rv = pthread_create(&ep_int_in_thread, 0,
+					ep_int_in_loop, (void *)(long)fd);
+			if (rv != 0) {
+				perror("pthread_create(ep_int_in)");
+				exit(EXIT_FAILURE);
+			}
 			usb_raw_vbus_draw(fd, usb_config.bMaxPower);
 			usb_raw_configure(fd);
 			io->inner.length = 0;
@@ -742,14 +775,12 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 		case HID_REQ_SET_REPORT:
 			// This is an OUT request, so don't initialize data.
 			io->inner.length = 1;
-			*done = true;
 			return true;
 		case HID_REQ_SET_IDLE:
 			io->inner.length = 0;
 			return true;
 		case HID_REQ_SET_PROTOCOL:
 			io->inner.length = 0;
-			*done = true;
 			return true;
 		default:
 			printf("fail: no response\n");
@@ -770,11 +801,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 }
 
 void ep0_loop(int fd) {
-	// To simplify the example, stop processing EP0 events when either
-	// HID_REQ_SET_REPORT or HID_REQ_SET_PROTOCOL request is received.
-	bool done = false;
-
-	while (!done) {
+	while (true) {
 		struct usb_raw_control_event event;
 		event.inner.type = 0;
 		event.inner.length = sizeof(event.ctrl);
@@ -795,7 +822,7 @@ void ep0_loop(int fd) {
 		io.inner.flags = 0;
 		io.inner.length = 0;
 
-		bool reply = ep0_request(fd, &event, &io, &done);
+		bool reply = ep0_request(fd, &event, &io);
 		if (!reply) {
 			printf("ep0: stalling\n");
 			usb_raw_ep0_stall(fd);
@@ -815,27 +842,6 @@ void ep0_loop(int fd) {
 	}
 }
 
-void ep_int_in_loop(int fd) {
-	struct usb_raw_int_io io;
-	io.inner.ep = ep_int_in;
-	io.inner.flags = 0;
-	io.inner.length = 8;
-
-	while (true) {
-		memcpy(&io.inner.data[0],
-				"\x00\x00\x1b\x00\x00\x00\x00\x00", 8);
-		int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-		printf("int_in: key down: %d\n", rv);
-
-		memcpy(&io.inner.data[0],
-				"\x00\x00\x00\x00\x00\x00\x00\x00", 8);
-		rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-		printf("int_in: key up: %d\n", rv);
-
-		sleep(1);
-	}
-}
-
 int main(int argc, char **argv) {
 	const char *device = "dummy_udc.0";
 	const char *driver = "dummy_udc";
@@ -849,8 +855,6 @@ int main(int argc, char **argv) {
 	usb_raw_run(fd);
 
 	ep0_loop(fd);
-
-	ep_int_in_loop(fd);
 
 	close(fd);
 
