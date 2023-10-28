@@ -147,18 +147,19 @@ Endpoint operations return `ESHUTDOWN`, error code `108`:
 ioctl(USB_RAW_IOCTL_EP0_WRITE): Cannot send after transport endpoint shutdown
 ```
 
-This error means that the emulated USB device tried to send data on a disabled endpoint.
+This error means that the emulated USB device tried to perform a read or write operation on a disabled endpoint.
 
-This usually happens when the device emulation code does something wrong.
-For example, tries to perform an endpoint operation before the device was configured.
-Or provides an endpoint descriptor that does not match the USB device speed.
-As a result, either the UDC driver or the host decides to disconnect the device.
+This error is usually observed when the host decides to reset the device during its operation.
 
-Note: During device operation, the host might decide to reconfigure the device.
-The UDC driver will then issue a reset or a disconnect event (depends on which UDC driver is in use).
-After this, any attempt to issue an endpoint operation will fail with `ESHUTDOWN` until the device emulation code calls `USB_RAW_IOCTL_CONFIGURE` again when handling a new `SET_CONFIGURATION` request.
-Getting notifications about the reset and disconnect events requires using the Raw Gadget patches from the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
-Note that if an endpoint operation fails with `ESHUTDOWN`, the Raw Gadget device will be put into the `STATE_DEV_FAILED` state and stop functioning.
+A reset often happens when the device emulation code does something wrong.
+For example, provides a bad descriptor that gets rejected by the host.
+As a result, either the UDC driver or the host decides to reset the device.
+
+Note that a reset can happen during normal device operation.
+For example, when the host decides to reconfigure the device.
+The UDC driver will then issue a reset event (or [disconnect](https://github.com/xairy/raw-gadget/issues/48) for `dwc2`).
+After this, any attempt to perform an endpoint operation will fail with `ESHUTDOWN` until the device emulation code calls `USB_RAW_IOCTL_CONFIGURE` again when handling a new `SET_CONFIGURATION` request.
+The device emulation code needs to gracefully handle `ESHUTDOWN` and restart enumeration.
 
 
 ## Projects based on Raw Gadget
