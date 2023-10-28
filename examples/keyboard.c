@@ -620,6 +620,8 @@ bool assign_ep_address(struct usb_raw_ep_info *info,
 		return false;
 	if (usb_endpoint_dir_out(ep) && !info->caps.dir_out)
 		return false;
+	if (usb_endpoint_maxp(ep) > info->limits.maxpacket_limit)
+		return false;
 	switch (usb_endpoint_type(ep)) {
 	case USB_ENDPOINT_XFER_BULK:
 		if (!info->caps.type_bulk)
