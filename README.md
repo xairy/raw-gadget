@@ -1,11 +1,6 @@
 Raw Gadget
 ==========
 
-__Note__:
-Do not use Raw Gadget in production for emulating USB devices with concrete classes.
-Instead, use the [composite framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
-Raw Gadget is intended for fuzzing and exploiting USB hosts or for proxying USB devices.
-
 [Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a Linux kernel module that implements a low-level interface for the Linux USB Gadget subsystem.
 It is similar to GadgetFS, but provides greater flexibility; see all the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
@@ -24,6 +19,11 @@ On desktop Ubuntu, you can get them by installing `` linux-headers-`uname -r` ``
 On a Raspberry Pi, follow [these instructions](https://github.com/notro/rpi-source/wiki).
 
 See the [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk [[video](https://www.youtube.com/watch?v=AT3PQjKxa_c)] for details about Linux Host and Gadget USB subsystems and Raw Gadget.
+
+__Note__:
+Do not use Raw Gadget in production for emulating USB devices with concrete classes.
+Instead, use the [composite framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
+Raw Gadget is intended for fuzzing and exploiting USB hosts or for proxying USB devices.
 
 
 ## USB Device Controllers
@@ -97,7 +97,7 @@ Note: This backend is still a prototype.
 Outstanding tasks:
 
 1. Make sure that all required backend callbacks are implemented. For example, `read_from_endpoint` should probably be implemented.
-2. Provide a common [Python wrapper](#1) for Raw Gadget ioctls, and use it in the backend.
+2. Provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend.
 3. Finalize and submit out-of-tree Raw Gadget patches to the mainline.
 
 Note: Facedancer assumes that every backend supports non-blocking I/O, which is not the case for Raw Gadget.
@@ -111,7 +111,7 @@ As a generic guidance to troubleshooting Raw Gadget errors:
 
 1. Switch to the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
 
-    This branch contains fixes for some known issues and prints more debug output.
+    This branch might contain fixes for some known issues.
 
 2. Enable debug output for Raw Gadget (and Dummy HCD/UDC if you're using it).
 
@@ -148,18 +148,17 @@ ioctl(USB_RAW_IOCTL_EP0_WRITE): Cannot send after transport endpoint shutdown
 ```
 
 This error means that the emulated USB device tried to perform a read or write operation on a disabled endpoint.
+This error is usually observed when the host decides to reset the device during its operation, following which the UDC driver disables all enabled endpoints.
 
-This error is usually observed when the host decides to reset the device during its operation.
+Often, a reset happens when the device emulation code does something wrong.
+For example, provides a bad USB descriptor that is either malformed or inconsistent with the emulated device speed or other parameters.
+As a result, either the UDC driver or the host resets or disconnects the device.
 
-A reset often happens when the device emulation code does something wrong.
-For example, provides a bad descriptor that gets rejected by the host.
-As a result, either the UDC driver or the host decides to reset the device.
-
-Note that a reset can happen during normal device operation.
-For example, when the host decides to reconfigure the device.
-The UDC driver will then issue a reset event (or [disconnect](https://github.com/xairy/raw-gadget/issues/48) for `dwc2`).
-After this, any attempt to perform an endpoint operation will fail with `ESHUTDOWN` until the device emulation code calls `USB_RAW_IOCTL_CONFIGURE` again when handling a new `SET_CONFIGURATION` request.
-The device emulation code needs to gracefully handle `ESHUTDOWN` and restart enumeration.
+However, a reset can happen during the normal device operation.
+For example, the host might decide to reconfigure the device and thus will reset it.
+The UDC driver will then deactivate all endpoints and any attempt to perform an endpoint operation will fail with `ESHUTDOWN`.
+When this happens, Raw Gadget will issue a `USB_RAW_EVENT_RESET` event (or `USB_RAW_EVENT_DISCONNECT` [for](https://github.com/xairy/raw-gadget/issues/48) `dwc2`).
+The device emulation code needs to gracefully handle `ESHUTDOWN`, disable all Raw Gadget endpoints when hanlding the `USB_RAW_EVENT_RESET` event, restart enumeration, and reenable the endpoints when handling a new `SET_CONFIGURATION` request.
 
 
 ## Projects based on Raw Gadget
