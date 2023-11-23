@@ -45,11 +45,11 @@ Running the tests:
 
 * USB 3 Streams tests (not implemented in kernel yet).
 
-* Run www.usb.org USBCV tests (see [linux-usb.org](http://www.linux-usb.org/usbtest/) for details).
+* Run USBCV tests (see [linux-usb.org](http://www.linux-usb.org/usbtest/) for details).
 
 * Figure out a way to properly test endpoint halts (`usbtest` #13 is fully handled by UDC drivers).
 
-* Figure out a way to test suspend/resume (not implemented in kernel yet).
+* Figure out a way to test suspend/resume.
 
 ## Results
 
