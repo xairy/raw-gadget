@@ -26,6 +26,21 @@ Instead, use the [composite framework](https://docs.kernel.org/usb/gadget_config
 Raw Gadget is intended for fuzzing and exploiting USB hosts or for proxying USB devices.
 
 
+## Limitations
+
+While Raw Gadget does support emulating a wide range of USB device types, it has a set of known limitations.
+
+Most notably, there is:
+
+- No support for isochronous transfers (see https://github.com/xairy/raw-gadget/issues/60);
+- No support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61);
+
+Both of these are not foundational limitations of the technology but rather just features missing from the implementation.
+They might addressed in the future.
+
+Also see [TODOs](#todo) for a list of other more minor missing features.
+
+
 ## USB Device Controllers
 
 Raw Gadget requires the user to provide the UDC device and driver names.
@@ -171,16 +186,9 @@ The device emulation code needs to gracefully handle `ESHUTDOWN`, disable all Ra
 
 ## TODO
 
+* [GitHub issues](https://github.com/xairy/raw-gadget/issues)
 * [TODOs in kernel documentation](https://elixir.bootlin.com/linux/v5.7/source/Documentation/usb/raw-gadget.rst#L74)
 * [TODOs in Raw Gadget test suite](/tests#todo)
-* [GitHub issues](https://github.com/xairy/raw-gadget/issues)
-
-Other potential fixes/improvements to investigate:
-
-* Set `ep->maxburst`, `ep->mult` and `ep->maxpacket` in gadget drivers.
-* OTG support.
-* Set `ep->dev` on `ep` allocation.
-* Don't pass `ep0_status` and `ep_status` through `dev`, get from `req` instead.
 
 
 ## License
