@@ -18,6 +18,9 @@ Build the module:
 make
 ```
 
+Note:
+You might need to revert some of the patches from `patches/` to build the module on newer kernels.
+
 Load the module:
 
 ``` bash
