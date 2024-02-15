@@ -2,7 +2,7 @@ Dummy HCD/UDC Kernel Module
 ===========================
 
 Dummy HCD/UDC is a module that sets up virtual USB Device and Host controllers that are connected to each other inside the kernel.
-This module allows connecting USB devices from userspace to the underlying kernel through any of the interfaces for the Gadget subsystem (Raw Gadget, GadgetFS, etc).
+This module allows connecting USB devices emulated from userspace through any of the Gadget subsystem interfaces (Raw Gadget, GadgetFS, etc.) directly to the underlying kernel.
 
 This directory contains the Dummy HCD/UDC module source code patched to allow out-of-tree building on older kernels.
 Check the `patches/` directory to see the applied patches.
