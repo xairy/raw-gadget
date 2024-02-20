@@ -111,9 +111,10 @@ In turn, `legacy-applets/facedancer-umass.py` requires `RG_USB_SPEED=2`.
 Note: This backend is still a prototype.
 Outstanding tasks:
 
-1. Make sure that all required backend callbacks are implemented. For example, `read_from_endpoint` should probably be implemented.
-2. Provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend.
-3. Finalize and submit out-of-tree Raw Gadget patches to the mainline.
+1. Rebase the backend onto [Facedancer 3.0 release](https://github.com/greatscottgadgets/facedancer/issues/79).
+2. Make sure that all [required backend callbacks](https://github.com/greatscottgadgets/facedancer/issues/48) are implemented. For example, `read_from_endpoint` should probably be implemented.
+3. Provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend.
+4. Finalize and submit out-of-tree Raw Gadget patches to the mainline.
 
 Note: Facedancer assumes that every backend supports non-blocking I/O, which is not the case for Raw Gadget.
 To work around this limitation, the backend prototype relies on timeouts.
