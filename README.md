@@ -71,8 +71,9 @@ Below is a table of UDCs that were tested with Raw Gadget.
 | Orange Pi PC | `5.10.60` | `musb-hdrc` | `musb-hdrc.4.auto` | [Yes](/tests#orange-pi-pc) |
 | Orange Pi PC 2 | `5.10.60` | `musb-hdrc` | `musb-hdrc.4.auto` | [Yes](/tests#orange-pi-pc-2) |
 | Khadas VIM1 | `5.10.60-meson64` | `c9100000.usb` | `c9100000.usb` | [Yes](/tests#khadas-vim1) |
+| [ThinkPad X1 Carbon Gen 6](https://xairy.io/articles/thinkpad-xdci) | `5.15.0-107-generic` | `dwc3-gadget` | `dwc3.1.auto` | [Yes](/tests#thinkpad-x1-carbon-gen-6) |
 | BeagleBone Black | `4.19.94-ti-r42` | `musb-hdrc` | `musb-hdrc.0` | Probably |
-| BeagleBone AI | `4.14.108-ti-r131` | `48890000.usb` | `dwc3-gadget` | Not yet |
+| BeagleBone AI | `4.14.108-ti-r131` | `dwc3-gadget` | `48890000.usb` | Probably |
 | [EC3380-AB](http://www.hwtools.net/Adapter/EC3380-AB.html) | `5.3.0-45-generic` | `net2280` | `0000:04:00.0` (e.g.) | Partially,<br />`net2280` buggy |
 | Odroid C2 | `3.14.79-116` | `dwc_otg_pcd` | `dwc2_a` | No, kernel too old |
 
