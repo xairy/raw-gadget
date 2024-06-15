@@ -30,15 +30,12 @@ Raw Gadget is intended for fuzzing and exploiting USB hosts or for proxying USB 
 
 While Raw Gadget does support emulating a wide range of USB device types, it has a set of known limitations.
 
-Most notably, there is:
-
-- No support for isochronous transfers (see https://github.com/xairy/raw-gadget/issues/60);
-- No support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61);
-
-Both of these are not foundational limitations of the technology but rather just features missing from the implementation.
-They might addressed in the future.
+Most notably, there is no support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61);
 
 Also see [TODOs](#todo) for a list of other more minor missing features.
+
+These are not foundational limitations of the technology but rather just features missing from the implementation.
+They might addressed in the future.
 
 
 ## USB Device Controllers
