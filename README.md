@@ -89,6 +89,16 @@ Below is a table of UDCs that were tested with Raw Gadget.
 "Works" in the table above means that the UDC passes the provided [tests](/tests), which only cover a [subset of functionality](/tests#todo).
 
 
+## Raw Gadget and syzkaller
+
+Raw Gadget powers the [syzkaller](https://github.com/google/syzkaller)'s ability to [fuzz the Linux kernel USB stack](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
+
+See [Running syzkaller USB reproducers](docs/syzkaller_reproducers.md) for instructions on running syzkaller USB reproducers on a Linux-based board plugged into a physical USB host.
+
+You also set up syzkaller in the [isolated mode](https://github.com/google/syzkaller/blob/master/docs/linux/setup_linux-host_isolated.md) to fuzz physical USB hosts with the help of Raw Gadget.
+Instructions for this are not provided.
+
+
 ## Facedancer backend
 
 There's a [prototype](https://github.com/xairy/Facedancer/tree/rawgadget) of a Facedancer backend based on Raw Gadget.

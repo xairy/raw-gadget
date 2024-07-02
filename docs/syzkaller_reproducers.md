@@ -1,0 +1,100 @@
+Running syzkaller USB reproducers
+=================================
+
+[syzkaller](https://github.com/google/syzkaller) uses Raw Gadget and Dummy HCD/UDC to [fuzz the Linux kernel USB stack](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
+
+This document contains the instructions on running syzkaller USB reproducers on a Linux-based board plugged into a physical USB host.
+These instructions were tested on Raspberry Pi boards, but any other board that has a working UDC can be used as well.
+These instructions were tested with syzkaller revision [b01b098ace00](https://github.com/google/syzkaller/commit/b01b098ace00ac799e10c38d3d3f1db50437eb57) (July 2nd 2024) and might need to be adapted for newer revisions.
+
+
+## Instructions
+
+1. Set up [Raw Gadget](https://github.com/xairy/raw-gadget) on the board.
+
+    See [Raw Gadget on Raspberry Pi](setup_raspberry-pi.md) for end-to-end instructions on how to set up Raw Gadget on a Raspberri Pi board;
+
+2. On the host machine (not on the board), install Docker;
+
+3. On the host, download syzkaller and set up `syz-env`:
+
+    ``` bash
+    git clone https://github.com/google/syzkaller
+    # Update '...' below.
+    alias syz-env=".../syzkaller/tools/syz-env"
+    cd syzkaller
+    syz-env ls
+    ```
+
+    `syz-env` will take some time to set up the Docker image without providing any output; let it finish;
+
+4. Patch the [UDC device and driver names](/README.md#usb-device-controllers) in syzkaller:
+    
+    ``` c
+    diff --git a/executor/common_usb_linux.h b/executor/common_usb_linux.h
+    index b706663f8..f06fd5e3b 100644
+    --- a/executor/common_usb_linux.h
+    +++ b/executor/common_usb_linux.h
+    @@ -303,9 +303,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
+     
+            // TODO: consider creating two dummy_udc's per proc to increace the chance of
+            // triggering interaction between multiple USB devices within the same program.
+    -       char device[32];
+    -       sprintf(&device[0], "dummy_udc.%llu", procid);
+    -       int rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
+    +       int rv = usb_raw_init(fd, speed, "20980000.usb", "20980000.usb");
+            if (rv < 0) {
+                    debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
+                    return rv;
+    ```
+
+5. Cross-compile `syz-execprog` and `syz-executor`:
+
+    ``` bash
+    syz-env make generate
+    syz-env GOARM=5 make TARGETARCH=arm execprog
+    syz-env make TARGETARCH=arm executor
+    ```
+
+    `GOARM=5` is only required on boards that don't support hardware floating point instructions (such as Raspberry Pi Zero);
+
+
+6. Copy `./bin/linux_arm/syz-execprog` and `./bin/linux_arm/syz-executor` onto the board.
+
+    For a Raspberry Pi, one option to copy the files is to enable the SSH server [via](https://www.raspberrypi.com/documentation/computers/remote-access.html#ssh) `sudo raspi-config`.
+
+    Another option is to copy the files onto the SD card;
+
+7. On the board, check that you can execute a simple syzkaller program:
+
+    ``` bash
+    $ cat socket.log
+    r0 = socket$inet_tcp(0x2, 0x1, 0x0)
+    $ sudo ./syz-execprog -executor ./syz-executor -threaded=0 -collide=0 -procs=1 -enable='' -debug socket.log
+    ```
+
+    Make sure that you see something like this at the end of the output:
+
+    ```
+    #0 [134ms] -> socket$inet_tcp(0x2, 0x1, 0x0)
+    #0 [134ms] <- socket$inet_tcp=0x3
+    ```
+
+    Seeing various failure messages before that is normal;
+
+8. You should now be able to execute syzkaller USB programs:
+
+    ``` bash
+    $ cat usb.log
+    r0 = syz_usb_connect(0x0, 0x24, &(0x7f00000001c0)={{0x12, 0x1, 0x0, 0x8e, 0x32, 0xf7, 0x20, 0xaf0, 0xd257, 0x4e87, 0x0, 0x0, 0x0, 0x1, [{{0x9, 0x2, 0x12, 0x1, 0x0, 0x0, 0x0, 0x0, [{{0x9, 0x4, 0xf, 0x0, 0x0, 0xff, 0xa5, 0x2c}}]}}]}}, 0x0)
+    $ sudo ./syz-execprog -executor ./syz-executor -slowdown=3 -threaded=0 -collide=0 -procs=1 -enable='' -debug usb.log
+    ```
+
+    The `slowdown` parameter is a scaling factor which can be used for increasing the syscall timeouts.
+
+    Upon executing this program, a new USB device should appear on the host for a brief moment.
+
+You now can get and run any USB bug reproducer from [syzbot](https://syzkaller.appspot.com/upstream?manager=ci2-upstream-usb).
+
+Note that pure USB reproducers should only contain syscalls that start with `syz_usb_`.
+If a reproducer contains other syscalls, it likely requires interacting with the USB stack from the host side.
