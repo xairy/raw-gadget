@@ -8,29 +8,22 @@ Raw Gadget can be used to emulate USB devices, both physical and virtual ones.
 Emulating physical devices requires a Linux board with a [USB Device Controller](/README.md#usb-device-controllers) (UDC), such as a Raspberry Pi.
 Emulating virtual devices requires no hardware and instead relies on the [Dummy HCD/UDC](/dummy_hcd) module (such devices get connected to the kernel Raw Gadget is running on).
 
-This repository contains instructions and [examples](/examples) for using Raw Gadget.
+This repository contains instructions instructions, [examples](/examples), and [tests](/tests) for Raw Gadget.
+In addition, this repository hosts a [copy](/dummy_hcd) of the Dummy HCD/UDC kernel module for out-of-tree building.
 
-Raw Gadget has been [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline Linux kernel in `5.7`.
-There's no need to use `5.7+` kernels; see [raw_gadget](/raw_gadget) and [dummy_hcd](/dummy_hcd) for information on how to build and `insmod` corresponding modules on older kernels.
-The modules should be compatible with kernel versions down to `4.14`; see the table below.
-
-Building the Raw Gadget and Dummy HCD/UDC kernel modules requires kernel headers.
-On desktop Ubuntu, you can get them by installing `` linux-headers-`uname -r` ``.
-On a Raspberry Pi, follow [these instructions](https://github.com/RPi-Distro/rpi-source).
-
-See the [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk [[video](https://www.youtube.com/watch?v=AT3PQjKxa_c)] for details about Linux Host and Gadget USB subsystems and Raw Gadget.
+See the [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk [[video](https://www.youtube.com/watch?v=AT3PQjKxa_c)] for details about the Linux Host and Gadget USB subsystems and Raw Gadget.
 
 __Note__:
-Do not use Raw Gadget in production for emulating USB devices with concrete classes.
+Do not use Raw Gadget in production for emulating USB devices with specific classes.
 Instead, use the [composite framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
-Raw Gadget is intended for fuzzing and exploiting USB hosts or for proxying USB devices.
+Raw Gadget is intended for fuzzing and exploiting USB hosts or for software proxying of USB devices.
 
 
 ## Limitations
 
 While Raw Gadget does support emulating a wide range of USB device types, it has a set of known limitations.
 
-Most notably, there is no support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61);
+Most notably, there is no support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61).
 
 Also see [TODOs](#todo) for a list of other more minor missing features.
 
@@ -38,7 +31,20 @@ These are not foundational limitations of the technology but rather just feature
 They might addressed in the future.
 
 
+## Building
+
+Raw Gadget was [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline Linux kernel in `5.7` and can be built into the kernel by enabling `CONFIG_USB_RAW_GADGET`.
+
+For instructions on out-of-tree building (without rebuilding the whole kernel), including on kernels older than `5.7`, see [raw_gadget](/raw_gadget) and [dummy_hcd](/dummy_hcd).
+Both modules should be compatible with kernel versions down to `4.14`; see the table of tested UDCs below.
+
+Once the module (or modules) are built and loaded into the kernel, you can try running the provided [examples](/examples).
+
+
 ## USB Device Controllers
+
+Raw Gadget can be used on any Linux-based board that has a USB Device Controller (UDC) — a hardware component that allows the board to act as a USB peripheral device.
+Consult the documentation for your board on whether it has a UDC (often marketed as `USB OTG`) and how to enable it.
 
 Raw Gadget requires the user to provide the UDC device and driver names.
 This allows using Raw Gadget with a particular UDC if a few of them are present on the system.
@@ -50,7 +56,7 @@ $ ls /sys/class/udc/
 dummy_udc.0
 ```
 
-The UDC driver name is usually present in `/sys/class/udc/$UDC/uevent`:
+The UDC driver name is usually present in `/sys/class/udc/$UDC_DEVICE_NAME/uevent`:
 
 ``` bash
 $ cat /sys/class/udc/dummy_udc.0/uevent
@@ -61,7 +67,7 @@ Below is a table of UDCs that were tested with Raw Gadget.
 
 | Hardware | Kernel | Driver | Device | Works? |
 | :---: | :---: | :---: | :---: | :---: |
-| | `5.3.0-45-generic` | `dummy_udc` | `dummy_udc.0` | [Yes](/tests#dummy-udc) |
+| Any | `5.3.0-45-generic` | `dummy_udc` | `dummy_udc.0` | [Yes](/tests#dummy-udc) |
 | Raspberry Pi Zero | `4.14.97+` | `20980000.usb` | `20980000.usb` (`dwc2`) | [Yes](/tests#raspberry-pi-zero) |
 | Raspberry Pi 4 | `5.10.63-v7l+` | `fe980000.usb` | `fe980000.usb` (`dwc2`) | [Yes](/tests#raspberry-pi-4) |
 | USB Armory MkII | `5.4.87-0` | `2184000.usb` | `ci_hdrc.0` | [Yes](/tests#usb-armory-mkii) |

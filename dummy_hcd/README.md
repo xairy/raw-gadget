@@ -10,17 +10,23 @@ Dummy HCD/UDC is not a part of Raw Gadget; its code is present in this repositor
 
 ## Building and loading
 
-1. Depending on the used kernel version, possibly patch the Raw Gadget module source code.
+1. Install the Linux kernel headers.
+
+    On a desktop Ubuntu, you can get them by installing `` linux-headers-`uname -r` ``.
+
+    On a Raspberry Pi, follow [these instructions](https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel-headers).
+
+2. Depending on the used kernel version, possibly patch the Raw Gadget module source code.
 
     Check the [updating script](./update.sh) to see the potentially required patches.
 
-2. Build the module:
+3. Build the module:
 
     ``` bash
     make
     ```
 
-3. Load the module:
+4. Load the module:
 
     ``` bash
     ./insmod.sh
