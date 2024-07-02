@@ -4,28 +4,27 @@ Dummy HCD/UDC Kernel Module
 Dummy HCD/UDC is a module that sets up virtual USB Device and Host controllers that are connected to each other inside the kernel.
 This module allows connecting USB devices emulated from userspace through any of the Gadget subsystem interfaces (Raw Gadget, GadgetFS, etc.) directly to the underlying kernel.
 
-This directory contains the Dummy HCD/UDC module source code patched to allow out-of-tree building on older kernels.
-Check the `patches/` directory to see the applied patches.
-
+This directory contains a copy of the Dummy HCD/UDC module source code patched to allow out-of-tree building.
 Dummy HCD/UDC is not a part of Raw Gadget; its code is present in this repository just for convenience.
 
 
-## Usage
+## Building and loading
 
-Build the module:
+1. Depending on the used kernel version, possibly patch the Raw Gadget module source code.
 
-``` bash
-make
-```
+    Check the [updating script](./update.sh) to see the potentially required patches.
 
-Note:
-You might need to revert some of the patches from `patches/` to build the module on newer kernels.
+2. Build the module:
 
-Load the module:
+    ``` bash
+    make
+    ```
 
-``` bash
-./insmod.sh
-```
+3. Load the module:
+
+    ``` bash
+    ./insmod.sh
+    ```
 
 
 ## Updating
@@ -37,5 +36,4 @@ You can optionally update the Dummy HCD/UDC module source code to fetch the chan
 ```
 
 Note:
-The updating script applies the patches from `patches/`.
-You might need to revert them to build Dummy HCD/UDC against a modern kernel.
+The updating script will revert the locally applied patches.
