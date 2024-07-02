@@ -31,6 +31,17 @@ These are not foundational limitations of the technology but rather just feature
 They might addressed in the future.
 
 
+## Usage
+
+Raw Gadget can be used on any Linux-based board that has a USB Device Controller (UDC) — a hardware component that allows the board to act as a USB peripheral device.
+Consult the documentation for your board on whether it has a UDC (often marketed as `USB OTG`) and how to enable it.
+
+To set up Raw Gadget, you will need to build and load the Raw Gadget module, enable the UDC on your board, and find out the UDC device and driver names; see the instructions below.
+Once the setup is done, you can try running the provided [examples](/examples).
+
+See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for end-to-end instructions on how to set up Raw Gadget on a Raspberri Pi board.
+
+
 ## Building
 
 Raw Gadget was [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline Linux kernel in `5.7` and can be built into the kernel by enabling `CONFIG_USB_RAW_GADGET`.
@@ -38,13 +49,8 @@ Raw Gadget was [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds
 For instructions on out-of-tree building (without rebuilding the whole kernel), including on kernels older than `5.7`, see [raw_gadget](/raw_gadget) and [dummy_hcd](/dummy_hcd).
 Both modules should be compatible with kernel versions down to `4.14`; see the table of tested UDCs below.
 
-Once the module (or modules) are built and loaded into the kernel, you can try running the provided [examples](/examples).
-
 
 ## USB Device Controllers
-
-Raw Gadget can be used on any Linux-based board that has a USB Device Controller (UDC) — a hardware component that allows the board to act as a USB peripheral device.
-Consult the documentation for your board on whether it has a UDC (often marketed as `USB OTG`) and how to enable it.
 
 Raw Gadget requires the user to provide the UDC device and driver names.
 This allows using Raw Gadget with a particular UDC if a few of them are present on the system.
