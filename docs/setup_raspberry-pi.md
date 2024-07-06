@@ -2,7 +2,7 @@ Raw Gadget on Raspberry Pi
 ==========================
 
 This document contains end-to-end instructions on how to set up Raw Gadget on a Raspberri Pi board.
-The instructions were tested on Raspberry Pi Zero W and Raspberry Pi 4 B, but they should be easily adaptable to other boards.
+The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, and Raspberry Pi 4 B, but they should be easily adaptable to other boards.
 
 
 ## Required hardware
@@ -35,23 +35,22 @@ The instructions were tested on Raspberry Pi Zero W and Raspberry Pi 4 B, but th
 
 5. Boot the board and get a shell over UART.
 
+    For this step, you will need a USB UART adapter with jumper cables.
+
     [Here](https://learn.adafruit.com/raspberry-pi-zero-creation/give-it-life) are the instructions for Raspberry Pi Zero.
 
-    For this step, you will need a USB-UART adapter with jumper cables.
+    Note that getting the login prompt over UART takes a few minutes when you boot the board for the first time.
 
-    Note that getting the login prompt over UART takes a few minutes when you boot the board for the first time;
+    Getting a shell over SSH is also fine as long as the USB OTG port on the board remains available.
+    Thus, on Raspberry Pi Zero (without Wi-Fi) you will have to get a shell over UART, as the USB Ethernet cable takes up the USB OTG port;
 
-6. Get the board connected to the internet by plugging in a USB Ethernet adapter (or [use Wi-Fi](https://www.raspberrypi.com/documentation/computers/configuration.html#connect-to-a-wireless-network-2));
+6. Get the board connected to the internet by plugging in a USB Ethernet adapter or [use Wi-Fi](https://www.raspberrypi.com/documentation/computers/configuration.html#connect-to-a-wireless-network-2) on a Wi-Fi–enabled board;
 
 7. Update the packages: `sudo apt-get update && sudo apt-get dist-upgrade && sudo rpi-update && sudo reboot`;
 
 8. Install useful packages: `sudo apt-get install vim git`;
 
-9. [Install](https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel-headers) Linux kernel headers:
-
-   ``` bash
-   sudo apt install linux-headers-rpi-{v6,v7,v7l}
-   ```
+9. Install the Linux kernel header by following [these instructions](https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel-headers) Linux kernel headers;
 
 10. Setup the dwc2 UDC driver:
 
@@ -65,12 +64,13 @@ The instructions were tested on Raspberry Pi Zero W and Raspberry Pi 4 B, but th
 
 12. Build and load the USB Raw Gadget module following [these instructions](/raw_gadget);
 
-13. Connect the Raspberry Pi USB OTG connector to a USB host.
+13. Connect the Raspberry Pi USB OTG port to a USB host.
 
-    On Raspberry Pi Zero W, the connector is titled `USB` on the board.
+    On Raspberry Pi Zero, this port is titled `USB` on the board.
     You will need to unplug the USB Ethernet adapter for this step if you have it plugged in.
 
-    On Raspberry Pi 4 B, the OTG connector is the Type-C one titled `POWER IN`.
+    On Raspberry Pi 4 B, the OTG port is the Type-C one titled `POWER IN`.
+    It can be used for both powering the board and emulating USB devices at the same time.
     You might need to power off the board to reconnect it to the USB host;
 
 14. Build and run the Raw Gadget [keyboard emulator program](/examples):
