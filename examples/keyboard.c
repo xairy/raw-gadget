@@ -575,7 +575,7 @@ struct hid_descriptor usb_hid = {
 	},
 };
 
-int build_config(char *data, int length) {
+int build_config(char *data, int length, bool other_speed) {
 	struct usb_config_descriptor *config =
 		(struct usb_config_descriptor *)data;
 	int total_length = 0;
@@ -606,6 +606,9 @@ int build_config(char *data, int length) {
 
 	config->wTotalLength = __cpu_to_le16(total_length);
 	printf("config->wTotalLength: %d\n", total_length);
+
+	if (other_speed)
+		config->bDescriptorType = USB_DT_OTHER_SPEED_CONFIG;
 
 	return total_length;
 }
@@ -756,7 +759,12 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 			case USB_DT_CONFIG:
 				io->inner.length =
 					build_config(&io->data[0],
-						sizeof(io->data));
+						sizeof(io->data), false);
+				return true;
+			case USB_DT_OTHER_SPEED_CONFIG:
+				io->inner.length =
+					build_config(&io->data[0],
+						sizeof(io->data), true);
 				return true;
 			case USB_DT_STRING:
 				io->data[0] = 4;
