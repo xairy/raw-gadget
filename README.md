@@ -199,10 +199,20 @@ The device emulation code needs to gracefully handle `ESHUTDOWN`, disable all Ra
 
 ## Projects based on Raw Gadget
 
-* [google/syzkaller](https://github.com/google/syzkaller) — a kernel fuzzer, uses Raw Gadget for fuzzing Linux kernel [USB drivers](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
-* [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy) — A USB proxy based on Raw Gadget and libusb.
-* [blegas78/usb-sniffify](https://github.com/blegas78/usb-sniffify) — Another USB proxy based on Raw Gadget and libusb.
-* [patryk4815/usb-proxy](https://github.com/patryk4815/usb-proxy) — A USB proxy based on Raw Gadget and written in Go.
+Fuzzing-related:
+
+* [google/syzkaller](https://github.com/google/syzkaller) — kernel fuzzer, uses Raw Gadget for [fuzzing Linux kernel USB drivers](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md);
+* [ReUSB: Replay-Guided USB Driver Fuzzing](https://www.usenix.org/conference/usenixsecurity23/presentation/jang) — research work on extending syzkaller's USB fuzzing capability by collecting corpus seeds from real devices.
+
+Proxies:
+
+* [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy) — USB proxy based on Raw Gadget and libusb;
+* [blegas78/usb-sniffify](https://github.com/blegas78/usb-sniffify) — another USB proxy based on Raw Gadget and libusb;
+* [patryk4815/usb-proxy](https://github.com/patryk4815/usb-proxy) — USB proxy based on Raw Gadget and written in Go.
+
+Emulators:
+
+* [msawahara/me56ps2-emulator](https://github.com/msawahara/me56ps2-emulator) — emulator for ME56PS2 (PlayStation 2–compatible modem) [[article](https://qiita.com/msawahara/items/f109b75919ddcf0db05a)].
 
 
 ## TODO
