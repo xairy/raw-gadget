@@ -2,30 +2,48 @@ Raw Gadget
 ==========
 
 [Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a Linux kernel module that implements a low-level interface for the Linux USB Gadget subsystem.
-It is similar to GadgetFS, but provides greater flexibility; see all the differences [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
 Raw Gadget can be used to emulate USB devices, both physical and virtual ones.
-Emulating physical devices requires a Linux board with a [USB Device Controller](/README.md#usb-device-controllers) (UDC), such as a Raspberry Pi.
+Emulating physical devices requires a Linux-based board with a [USB Device Controller](/README.md#usb-device-controllers) (UDC), such as a Raspberry Pi.
 Emulating virtual devices requires no hardware and instead relies on the [Dummy HCD/UDC](/dummy_hcd) module (such devices get connected to the kernel Raw Gadget is running on).
 
-This repository contains instructions instructions, [examples](/examples), and [tests](/tests) for Raw Gadget.
+This repository contains instructions, [examples](/examples), and [tests](/tests) for Raw Gadget.
 In addition, this repository hosts a [copy](/dummy_hcd) of the Dummy HCD/UDC kernel module for out-of-tree building.
 
 See the [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk [[video](https://www.youtube.com/watch?v=AT3PQjKxa_c)] for details about the Linux Host and Gadget USB subsystems and Raw Gadget.
 
 __Note__:
 Do not use Raw Gadget in production for emulating USB devices with specific classes.
-Instead, use the [composite framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
-Raw Gadget is intended for fuzzing and exploiting USB hosts or for software proxying of USB devices.
+Instead, use the [Composite Framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
+
+
+## Comparison to other interfaces
+
+The Linux kernel provides a number of interfaces for the USB Gadget subsystem that allow emulating USB devices.
+Most notably there is the [Composite Framework](https://docs.kernel.org/usb/gadget_configfs.html)
+(including the [FunctionFS-based composite function](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_fs.c))
+and the [legacy gadget drivers modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy)
+(including [GadgetFS](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/inode.c)).
+
+Most of the Gadset subsystem interfaces (with the exception of GadgetFS and the FunctionFS-based composite function) only allow emulating USB devices of specific classes.
+Compared to them, Raw Gadget allows emulating USB devices of arbitary classes.
+
+GadgetFS and the FunctionFS-based composite function do allow emulating USB devices of arbitrary classes.
+However, these interfaces allow only a limited control over the responses to some USB requests, as they perform sanity checks on the responses provided from userspace.
+This limits their ability of emulating improper USB devices, which might be useful for fuzzing or exploitation.
+Compared to them, Raw Gadget has minimal checks on the provided responses.
+
+Thus, Raw Gadget is the perfect choice for fuzzing and exploiting USB hosts or for software proxying of USB devices.
+
+You can find more details about the difference between Raw Gadget and GadgetFS [in the kernel documentation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
 
 ## Limitations
 
-While Raw Gadget does support emulating a wide range of USB device types, it has a set of known limitations.
+While Raw Gadget does support emulating a wide range of USB device types, it has a set of known limitations:
 
-Most notably, there is no support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61).
-
-Also see [TODOs](#todo) for a list of other more minor missing features.
+- Most notably, there is no support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61);
+- Also see [TODOs](#todo) for a list of other more minor missing features.
 
 These are not foundational limitations of the technology but rather just features missing from the implementation.
 They might addressed in the future.
@@ -36,7 +54,12 @@ They might addressed in the future.
 Raw Gadget can be used on any Linux-based board that has a USB Device Controller (UDC) — a hardware component that allows the board to act as a USB peripheral device.
 Consult the documentation for your board on whether it has a UDC (often marketed as `USB OTG`) and how to enable it.
 
-To set up Raw Gadget, you will need to build and load the Raw Gadget module, enable the UDC on your board, and find out the UDC device and driver names; see the instructions below.
+To set up Raw Gadget, you need to:
+
+1. Enable the UDC on your board;
+2. [Find out](#usb-device-controllers) the UDC device and driver names;
+3. [Build and load](#building) the Raw Gadget module.
+
 Once the setup is done, you can try running the provided [examples](/examples).
 
 See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for end-to-end instructions on how to set up Raw Gadget on a Raspberri Pi board.
@@ -44,10 +67,14 @@ See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for end-to-end ins
 
 ## Building
 
-Raw Gadget was [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline Linux kernel in `5.7` and can be built into the kernel by enabling `CONFIG_USB_RAW_GADGET`.
+There are two options of building Raw Gadget:
 
-For instructions on out-of-tree building (without rebuilding the whole kernel), including on kernels older than `5.7`, see [raw_gadget](/raw_gadget) and [dummy_hcd](/dummy_hcd).
-Both modules should be compatible with kernel versions down to `4.14`; see the table of tested UDCs below.
+- Rebuild the whole kernel with `CONFIG_USB_RAW_GADGET` enabled.
+This requires using the kernel version `5.7+`, as Raw Gadget was [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline in `5.7`
+(or backporting Raw Gadget patches to an older kernel);
+
+- Build Raw Gadget as an out-of-tree kernel module without rebuilding the whole kernel; see [raw_gadget](/raw_gadget) (and [dummy_hcd](/dummy_hcd)) for the instructions.
+Both modules should be compatible with kernel versions down to `4.14`; see [the table below](#usb-device-controllers).
 
 
 ## USB Device Controllers
@@ -69,7 +96,7 @@ $ cat /sys/class/udc/dummy_udc.0/uevent
 USB_UDC_NAME=dummy_udc
 ```
 
-Below is a table of UDCs that were tested with Raw Gadget.
+Below is a table of hardware with various UDCs that was tested with Raw Gadget.
 
 | Hardware | Kernel | Driver | Device | Works? |
 | :---: | :---: | :---: | :---: | :---: |
@@ -86,10 +113,11 @@ Below is a table of UDCs that were tested with Raw Gadget.
 | [EC3380-AB](http://www.hwtools.net/Adapter/EC3380-AB.html) | `5.3.0-45-generic` | `net2280` | `0000:04:00.0` (e.g.) | Partially,<br />`net2280` buggy |
 | Odroid C2 | `3.14.79-116` | `dwc_otg_pcd` | `dwc2_a` | No, kernel too old |
 
-"Works" in the table above means that the UDC passes the provided [tests](/tests), which only cover a [subset of functionality](/tests#todo).
+"Works" in the table above means that the setup passed the provided [tests](/tests).
+However, note that those only cover a [subset of functionality](/tests#todo).
 
 
-## Raw Gadget and syzkaller
+## syzkaller integration
 
 Raw Gadget powers the [syzkaller](https://github.com/google/syzkaller)'s ability to [fuzz the Linux kernel USB stack](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
 
@@ -106,7 +134,7 @@ There's a [prototype](https://github.com/xairy/Facedancer/tree/rawgadget) of a F
 This backend relies on a few out-of-tree Raw Gadget patches present in the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
 Once the backend is thoroughly tested, these patches will be submitted to the mainline.
 
-Raw Gadget-based backend accepts a few parameters through environment variables:
+Raw Gadget–based backend accepts a few parameters through environment variables:
 
 | Parameter | Description | Default value |
 | :---: | :---: | :---: |
@@ -131,9 +159,9 @@ In turn, `legacy-applets/facedancer-umass.py` requires `RG_USB_SPEED=2`.
 Note: This backend is still a prototype.
 Outstanding tasks:
 
-1. Rebase the backend onto [Facedancer 3.0 release](https://github.com/greatscottgadgets/facedancer/issues/79).
-2. Make sure that all [required backend callbacks](https://github.com/greatscottgadgets/facedancer/issues/48) are implemented. For example, `read_from_endpoint` should probably be implemented.
-3. Provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend.
+1. Rebase the backend onto [Facedancer 3.0 release](https://github.com/greatscottgadgets/facedancer/issues/79);
+2. Make sure that all [required backend callbacks](https://github.com/greatscottgadgets/facedancer/issues/48) are implemented. For example, `read_from_endpoint` should probably be implemented;
+3. Provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend;
 4. Finalize and submit out-of-tree Raw Gadget patches to the mainline.
 
 Note: Facedancer assumes that every backend supports non-blocking I/O, which is not the case for Raw Gadget.
@@ -145,9 +173,9 @@ The proper solution to this issue would be to add non-blocking I/O support to Ra
 
 As a generic guidance to troubleshooting Raw Gadget errors:
 
-1. Switch to the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
+1. Consider switching to the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
 
-    This branch might contain fixes for some known issues.
+    This branch might contain fixes for some known issues;
 
 2. Enable debug output for Raw Gadget (and Dummy HCD/UDC if you're using it).
 
@@ -157,9 +185,9 @@ As a generic guidance to troubleshooting Raw Gadget errors:
     #define DEBUG
     ```
 
-    Then rebuild and reinsert the module.
+    Then, rebuild and reinsert the Raw Gadget module;
 
-3. Check the kernel log via `dmesg` to figure out what is failing.
+3. Check the kernel log via `dmesg` to find out what is failing.
 
 
 ### No such device
@@ -184,17 +212,18 @@ ioctl(USB_RAW_IOCTL_EP0_WRITE): Cannot send after transport endpoint shutdown
 ```
 
 This error means that the emulated USB device tried to perform a read or write operation on a disabled endpoint.
-This error is usually observed when the host decides to reset the device during its operation, following which the UDC driver disables all enabled endpoints.
+This error can happen due to a variety of reasons, but it is commonly observed when the host decides to reset the device during its operation, following which the UDC driver disables all enabled endpoints.
 
 Often, a reset happens when the device emulation code does something wrong.
 For example, provides a bad USB descriptor that is either malformed or inconsistent with the emulated device speed or other parameters.
 As a result, either the UDC driver or the host resets or disconnects the device.
 
-However, a reset can happen during the normal device operation.
+However, a reset can happen during a normal device operation.
 For example, the host might decide to reconfigure the device and thus will reset it.
 The UDC driver will then deactivate all endpoints and any attempt to perform an endpoint operation will fail with `ESHUTDOWN`.
 When this happens, Raw Gadget will issue a `USB_RAW_EVENT_RESET` event (or `USB_RAW_EVENT_DISCONNECT` [for](https://github.com/xairy/raw-gadget/issues/48) `dwc2`).
 The device emulation code needs to gracefully handle `ESHUTDOWN`, disable all Raw Gadget endpoints when hanlding the `USB_RAW_EVENT_RESET` event, restart enumeration, and reenable the endpoints when handling a new `SET_CONFIGURATION` request.
+See the [keyboard example](examples/keyboard.c) for a reference implementation.
 
 
 ## Projects based on Raw Gadget
