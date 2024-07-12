@@ -33,7 +33,7 @@ However, these interfaces allow only a limited control over the responses to som
 This limits their ability of emulating improper USB devices, which might be useful for fuzzing or exploitation.
 Compared to them, Raw Gadget has minimal checks on the provided responses.
 
-Thus, Raw Gadget is the perfect choice for fuzzing and exploiting USB hosts or for software proxying of USB devices.
+Raw Gadget is thus the perfect choice for fuzzing and exploiting USB hosts or for software proxying of USB devices.
 
 You can find more details about the difference between Raw Gadget and GadgetFS [in the kernel documentation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
@@ -62,7 +62,7 @@ To set up Raw Gadget, you need to:
 
 Once the setup is done, you can try running the provided [examples](/examples).
 
-See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for end-to-end instructions on how to set up Raw Gadget on a Raspberri Pi board.
+See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for end-to-end instructions on how to set up Raw Gadget on a Raspberry Pi board.
 
 
 ## Building
@@ -70,7 +70,7 @@ See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for end-to-end ins
 There are two options of building Raw Gadget:
 
 - Rebuild the whole kernel with `CONFIG_USB_RAW_GADGET` enabled.
-This requires using the kernel version `5.7+`, as Raw Gadget was [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline in `5.7`
+This requires using a kernel version `5.7+`, as Raw Gadget was [merged](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10) into the mainline in `5.7`
 (or backporting Raw Gadget patches to an older kernel);
 
 - Build Raw Gadget as an out-of-tree kernel module without rebuilding the whole kernel; see [raw_gadget](/raw_gadget) (and [dummy_hcd](/dummy_hcd)) for the instructions.
