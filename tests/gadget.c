@@ -884,6 +884,11 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 							bAlternateSetting;
 			io->inner.length = 1;
 			return true;
+		case USB_REQ_GET_STATUS:
+			io->data[0] = 0;
+			io->data[1] = 0;
+			io->inner.length = 2;
+			return true;
 		default:
 			printf("fail: no response\n");
 			exit(EXIT_FAILURE);
