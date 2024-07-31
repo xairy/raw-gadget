@@ -237,13 +237,19 @@ Fuzzing-related:
 
 Proxies:
 
-* [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy) — USB proxy based on Raw Gadget and libusb;
-* [blegas78/usb-sniffify](https://github.com/blegas78/usb-sniffify) — another USB proxy based on Raw Gadget and libusb;
-* [patryk4815/usb-proxy](https://github.com/patryk4815/usb-proxy) — USB proxy based on Raw Gadget and written in Go.
+* [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy) — USB proxy with injection support based on Raw Gadget and libusb;
+* [blegas78/usb-sniffify](https://github.com/blegas78/usb-sniffify) — another USB proxy with injection support based on Raw Gadget and libusb;
+* [patryk4815/usb-proxy](https://github.com/patryk4815/usb-proxy) — USB proxy based on Raw Gadget and written in Go;
+* [michaelforney/proxy.c](https://gist.github.com/michaelforney/36f78621b79d6caaaf64be7416a8dec2) — USB proxy used for [reverse engineering](https://github.com/michaelforney/oscmix/issues/9#issuecomment-1960915504) some USB MIDI device;
+* [Mjollnirs/UsbMITMAttack](https://github.com/Mjollnirs/UsbMITMAttack) — research project about using Raw Gadget on Raspberry Pi 4B to MitM USB devices.
 
 Emulators:
 
 * [msawahara/me56ps2-emulator](https://github.com/msawahara/me56ps2-emulator) — emulator for ME56PS2 (PlayStation 2–compatible modem) [[article](https://qiita.com/msawahara/items/f109b75919ddcf0db05a)].
+
+Other:
+
+* [blegas78/chaos](https://github.com/blegas78/chaos) — MitM tool running on Raspberry Pi that allows Twitch chat to mess around with the inputs from a Dualshock 4 Generation 2 controller.
 
 
 ## TODO
