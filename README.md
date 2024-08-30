@@ -245,7 +245,8 @@ Proxies:
 
 Emulators:
 
-* [msawahara/me56ps2-emulator](https://github.com/msawahara/me56ps2-emulator) — emulator for ME56PS2 (PlayStation 2–compatible modem) [[article](https://qiita.com/msawahara/items/f109b75919ddcf0db05a)].
+* [msawahara/me56ps2-emulator](https://github.com/msawahara/me56ps2-emulator) — emulator for ME56PS2 (PlayStation 2–compatible modem) [[article](https://qiita.com/msawahara/items/f109b75919ddcf0db05a)];
+* [Berghopper/360-raw-gadget](https://github.com/Berghopper/360-raw-gadget) and [Berghopper/360-w-raw-gadget](https://github.com/Berghopper/360-w-raw-gadget/) — emulators for Xbox 360 contoller.
 
 Other:
 
