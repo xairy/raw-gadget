@@ -3,5 +3,5 @@
 
 set -eux
 
-sudo modprobe udc_core
-sudo insmod ./dummy_hcd.ko
+modprobe udc_core
+insmod ./dummy_hcd.ko
