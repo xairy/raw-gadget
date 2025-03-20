@@ -250,7 +250,8 @@ Emulators:
 
 Other:
 
-* [blegas78/chaos](https://github.com/blegas78/chaos) — MitM tool running on Raspberry Pi that allows Twitch chat to mess around with the inputs from a Dualshock 4 Generation 2 controller.
+* [blegas78/chaos](https://github.com/blegas78/chaos) — MitM tool running on Raspberry Pi that allows Twitch chat to mess around with the inputs from a Dualshock 4 Generation 2 controller;
+* [kovalev0/usb-gadget-tests](https://github.com/kovalev0/usb-gadget-tests) — testing framework for the USB Gadget subsystem.
 
 
 ## TODO
