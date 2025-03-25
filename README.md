@@ -43,10 +43,24 @@ You can find more details about the difference between Raw Gadget and GadgetFS [
 While Raw Gadget does support emulating a wide range of USB device types, it has a set of known limitations:
 
 - Most notably, there is no support for USB 3 SuperSpeed device emulation (see https://github.com/xairy/raw-gadget/issues/61);
-- Also see [TODOs](#todo) for a list of other more minor missing features.
+- Also see [TODOs](#todo) for a list of other missing features.
 
 These are not foundational limitations of the technology but rather just features missing from the implementation.
 They might addressed in the future.
+
+In addition, different UDCs have their own limitations:
+
+- Some UDCs only support certain speeds and endpoint types and provide a limited number of endpoints (the information about available endpoints is exposed via the `USB_RAW_IOCTL_EPS_INFO` Raw Gadget ioctl);
+- Dummy HCD/UDC does not support isochronous transfers (can be implemented; see https://github.com/xairy/raw-gadget/issues/72).
+
+Besides that, Raw Gadget cannot be used to emulate USB hubs.
+The main reason for this is that none of the commonly-used UDCs support emulating hubs.
+Aspeed UDCs [do support](https://www.spinics.net/lists/linux-usb/msg157518.html) emulating hubs, but these UDCs are only found within server BMCs.
+Adding Raw Gadget support for USB hub emulation via Aspeed UDCs might be possible, but that will likely require changes across both Raw Gadget and the USB Gadget subsystem.
+
+Depending on your use case, a viable alternative to emulating a USB hub is [combining](https://github.com/xairy/raw-gadget/issues/78#issuecomment-2318810268) the functionality of multiple USB devices within a single emulated device.
+This can be done by emulating a USB device with multiple USB interfaces of different classes.
+These interfaces will be functioning in parallel.
 
 
 ## Usage
