@@ -46,7 +46,7 @@ While Raw Gadget does support emulating a wide range of USB device types, it has
 - Also see [TODOs](#todo) for a list of other missing features.
 
 These are not foundational limitations of the technology but rather just features missing from the implementation.
-They might addressed in the future.
+They might implemented in the future.
 
 In addition, different UDCs have their own limitations:
 
@@ -76,7 +76,9 @@ To set up Raw Gadget, you need to:
 
 Once the setup is done, you can try running the provided [examples](/examples).
 
-See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for end-to-end instructions on how to set up Raw Gadget on a Raspberry Pi board.
+See [Raw Gadget on Raspberry Pi](/docs/setup_raspberry-pi.md) for the end-to-end instructions on how to set up Raw Gadget on a Raspberry Pi board.
+
+Refer to [API usage](#api-usage) for the guidance on how to use Raw Gadget as a part of your project.
 
 
 ## Building
@@ -110,7 +112,7 @@ $ cat /sys/class/udc/dummy_udc.0/uevent
 USB_UDC_NAME=dummy_udc
 ```
 
-Below is a table of hardware with various UDCs that was tested with Raw Gadget.
+Below is a table of hardware with various UDCs that were tested with Raw Gadget.
 
 | Hardware | Kernel | Driver | Device | Works? |
 | :---: | :---: | :---: | :---: | :---: |
@@ -133,6 +135,74 @@ Below is a table of hardware with various UDCs that was tested with Raw Gadget.
 However, note that those only cover a [subset of functionality](/tests#todo).
 
 
+## API usage
+
+A userspace application can interact with Raw Gadget by opening `/dev/raw-gadget` and issuing `ioctl` calls to it.
+See the comments in [raw_gadget.h](raw_gadget/raw_gadget.h) for the details about each supported `ioctl`.
+Multiple Raw Gadget instances (bound to different UDCs) can be used at the same time.
+
+On the high level, the usage scenario of Raw Gadget is:
+
+1. Create a Raw Gadget instance by opening `/dev/raw-gadget`;
+2. Initialize the instance via `USB_RAW_IOCTL_INIT`;
+3. Launch the instance with `USB_RAW_IOCTL_RUN`;
+4. In a loop, issue `USB_RAW_IOCTL_EVENT_FETCH` to receive events from Raw Gadget and react to those depending on what kind of USB device must be implemented.
+
+For basic examples of the API usage, see [examples](/examples).
+For a more advanced example (that handles USB resets and configuration/altsetting changes) see [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy).
+
+
+### Endpoint addresses
+
+Some UDCs impose restrictions on the endpoint parameters (transfer type, direction, etc.) that can be used with specific endpoint addresses.
+Thus, the endpoint parameters in the endpoint descriptor passed to `USB_RAW_IOCTL_EP_ENABLE` must be supported by the UDC for the specific endpoint address.
+
+Raw Gadget provides a way to find out the endpoint restrictions imposed by the used UDC.
+Once `USB_RAW_EVENT_CONNECT` is received via `USB_RAW_IOCTL_EVENT_FETCH`, `USB_RAW_IOCTL_EPS_INFO` can be used to find out the information about the endpoint restrictions.
+Based on that information, the device emulation code might have to dynamically assign the endpoint addresses in the endpoint descriptors to align with the endpoint parameters.
+
+Note: `USB_RAW_IOCTL_EP_ENABLE` is implemented to go through the list of UDC endpoints and choose the first one that supports the endpoint address and parameters specified in the endpoint descriptor.
+
+
+### Blocking ioctls
+
+Every Raw Gadget ioctl that receives or sends a USB transfer is blocking.
+
+This includes both the ioctls for handling control requests (`USB_RAW_IOCTL_EVENT_FETCH` for receiving the request and `USB_RAW_IOCTL_EP0_WRITE/READ` for responding) and the ioctls for handling non-control transfers (`USB_RAW_IOCTL_EP_WRITE/READ`).
+The ioctls for responding to control requests and for sending non-control transfers typically do not block for a long time.
+However, the ioctls for receiving control requests and for receiving non-control transfers might block for a while.
+
+Thus, the userspace application that uses Raw Gadget would normally be multithreaded:
+
+1. In the main thread, set up and launch a Raw Gadget instance;
+
+2. Serve responses to control requests received via `USB_RAW_IOCTL_EVENT_FETCH` until a `USB_REQ_SET_CONFIGURATION` request;
+
+3. Use `USB_RAW_IOCTL_EP_ENABLE` to enable each endpoint for the default altsetting of each interface of the configuration being set;
+
+4. For each enabled endpoint, spawn a thread that would handle transfers on that endpoint;
+
+5. In the main thread, continue handling `USB_RAW_IOCTL_EVENT_FETCH`.
+
+
+### Resets and configuration/altsetting changes
+
+Throughout a USB device lifetime, the host might decide to reset the device or change its configuration or interface altsettings.
+These events require special handling with Raw Gadget to adjust the enabled endpoints.
+
+If the host decides to reset the device, the UDC driver will partially handle the reset first.
+The driver will disable all endpoints and any attempt to perform an endpoint operation will fail with `ESHUTDOWN`.
+When this happens, Raw Gadget will issue a `USB_RAW_EVENT_RESET` event (or `USB_RAW_EVENT_DISCONNECT` [for](https://github.com/xairy/raw-gadget/issues/48) `dwc2`).
+The device emulation code needs to gracefully handle `ESHUTDOWN` in the endpoint threads, disable all Raw Gadget endpoints when handling the `USB_RAW_EVENT_RESET` event, continue handling `USB_RAW_IOCTL_EVENT_FETCH` to redo the enumeration process, and reenable the endpoints and respawn the endpoint threads when handling a new `USB_REQ_SET_CONFIGURATION` request.
+
+Similar workflow is required for handling the `USB_REQ_SET_CONFIGURATION` and `USB_REQ_SET_INTERFACE` requests (that might happen without a reset).
+Unlike with a reset, in these cases, the affected endpoints will not be disabled automatically and the endpoint threads will not automatically exit with `ESHUTDOWN`.
+Since the endpoint threads might still be blocked on the transfer ioctls, the proposed approach is to interrupt the threads via a signal (e.g., `SIGUSR1`), gracefully handle `EINTR` in the threads, and disable/enable the endpoints and respawn the endpoint threads corresponding to the changed configuration or altsetting.
+
+See the [keyboard example](examples/keyboard.c) for a reference implementation of the reset handling.
+For an example that handles both resets and configuration/altsetting changes, see [AristoChen/usb-proxy](https://github.com/AristoChen/usb-proxy).
+
+
 ## syzkaller integration
 
 Raw Gadget powers the [syzkaller](https://github.com/google/syzkaller)'s ability to [fuzz the Linux kernel USB stack](https://github.com/google/syzkaller/blob/master/docs/linux/external_fuzzing_usb.md).
@@ -148,7 +218,7 @@ Instructions for this are not provided.
 There's a [prototype](https://github.com/xairy/Facedancer/tree/rawgadget) of a Facedancer backend based on Raw Gadget.
 
 This backend relies on a few out-of-tree Raw Gadget patches present in the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
-Once the backend is thoroughly tested, these patches will be submitted to the mainline.
+Once the backend implementation is finalized, these patches might be submitted to the mainline.
 
 Raw Gadget–based backend accepts a few parameters through environment variables:
 
@@ -177,12 +247,12 @@ Outstanding tasks:
 
 1. Rebase the backend onto [Facedancer 3.0 release](https://github.com/greatscottgadgets/facedancer/issues/79);
 2. Make sure that all [required backend callbacks](https://github.com/greatscottgadgets/facedancer/issues/48) are implemented. For example, `read_from_endpoint` should probably be implemented;
-3. Provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend;
-4. Finalize and submit out-of-tree Raw Gadget patches to the mainline.
+3. Optionally, provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend;
+4. Finalize and possibly submit the out-of-tree Raw Gadget patches to the mainline.
 
 Note: Facedancer assumes that every backend supports non-blocking I/O, which is not the case for Raw Gadget.
 To work around this limitation, the backend prototype relies on timeouts.
-The proper solution to this issue would be to add non-blocking I/O support to Raw Gadget.
+The proper solution to this issue would be to add non-blocking I/O support to Raw Gadget or to figure out a way to work around this limitation on the Facedancer side.
 
 
 ## Troubleshooting
@@ -236,10 +306,7 @@ As a result, either the UDC driver or the host resets or disconnects the device.
 
 However, a reset can happen during a normal device operation.
 For example, the host might decide to reconfigure the device and thus will reset it.
-The UDC driver will then deactivate all endpoints and any attempt to perform an endpoint operation will fail with `ESHUTDOWN`.
-When this happens, Raw Gadget will issue a `USB_RAW_EVENT_RESET` event (or `USB_RAW_EVENT_DISCONNECT` [for](https://github.com/xairy/raw-gadget/issues/48) `dwc2`).
-The device emulation code needs to gracefully handle `ESHUTDOWN`, disable all Raw Gadget endpoints when hanlding the `USB_RAW_EVENT_RESET` event, restart enumeration, and reenable the endpoints when handling a new `SET_CONFIGURATION` request.
-See the [keyboard example](examples/keyboard.c) for a reference implementation.
+See [Resets and configuration/altsetting changes](#resets-and-configurationaltsetting-changes) for the details on how to gracefully handle such cases.
 
 
 ## Projects based on Raw Gadget
