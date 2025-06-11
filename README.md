@@ -215,10 +215,8 @@ Instructions for this are not provided.
 
 ## Facedancer backend
 
-There's a [prototype](https://github.com/xairy/Facedancer/tree/rawgadget) of a Facedancer backend based on Raw Gadget.
-
-This backend relies on a few out-of-tree Raw Gadget patches present in the [dev branch](https://github.com/xairy/raw-gadget/tree/dev).
-Once the backend implementation is finalized, these patches might be submitted to the mainline.
+There's a [prototype](https://github.com/greatscottgadgets/facedancer/pull/164) of a Facedancer backend based on Raw Gadget.
+The prototype is still being tested and reviewed.
 
 Raw Gadget–based backend accepts a few parameters through environment variables:
 
@@ -226,33 +224,27 @@ Raw Gadget–based backend accepts a few parameters through environment variable
 | :---: | :---: | :---: |
 | `RG_UDC_DRIVER` | UDC driver name | `dummy_udc` |
 | `RG_UDC_DEVICE` | UDC device name | `dummy_udc.0` |
-| `RG_USB_SPEED` | USB device speed | `3` (High Speed) |
+| `RG_USB_SPEED` | USB device speed | Defined by Facedancer, usually `1` (Full Speed) |
 
-Example of using Facedancer with Raw Gadget to emulate a USB keyboard on a Raspberry Pi 4:
+Example of using Facedancer with Raw Gadget to emulate a USB keyboard on a Raspberry Pi 4B:
 
 ``` bash
 export BACKEND=rawgadget
 export RG_UDC_DRIVER=fe980000.usb
 export RG_UDC_DEVICE=fe980000.usb
-./legacy-applets/facedancer-keyboard.py
+./examples/rubber-ducky.py
 ```
 
-Note: Some Facedancer examples might fail if a wrong USB speed is specified.
+Note: Some Facedancer examples might fail if an incompatible USB speed is specified.
 Failures happen either with `EINVAL` in `USB_RAW_IOCTL_EP_ENABLE`, with `ESHUTDOWN` in `USB_RAW_IOCTL_EP_READ/WRITE`, or can be completely random.
-For example, with Dummy UDC, `examples/ftdi-echo.py` requires `RG_USB_SPEED=2` and `legacy-applets/facedancer-ftdi.py` requires `RG_USB_SPEED=3`.
-In turn, `legacy-applets/facedancer-umass.py` requires `RG_USB_SPEED=2`.
+For example, with Dummy UDC, `examples/ftdi-echo.py` requires `RG_USB_SPEED=2`.
 
 Note: This backend is still a prototype.
 Outstanding tasks:
 
-1. Rebase the backend onto [Facedancer 3.0 release](https://github.com/greatscottgadgets/facedancer/issues/79);
-2. Make sure that all [required backend callbacks](https://github.com/greatscottgadgets/facedancer/issues/48) are implemented. For example, `read_from_endpoint` should probably be implemented;
-3. Optionally, provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend;
-4. Finalize and possibly submit the out-of-tree Raw Gadget patches to the mainline.
-
-Note: Facedancer assumes that every backend supports non-blocking I/O, which is not the case for Raw Gadget.
-To work around this limitation, the backend prototype relies on timeouts.
-The proper solution to this issue would be to add non-blocking I/O support to Raw Gadget or to figure out a way to work around this limitation on the Facedancer side.
+1. Optionally, provide a common [Python wrapper](https://github.com/xairy/raw-gadget/issues/1) for Raw Gadget ioctls, and use it in the backend;
+2. Run [Facedancer tests](https://github.com/greatscottgadgets/facedancer/tree/main/test) with a few different UDCs and make sure that they succeed;
+3. Test [proxying](https://github.com/greatscottgadgets/facedancer/blob/main/docs/source/using_usb_proxy.rst) of various USB devices and check that it works.
 
 
 ## Troubleshooting
