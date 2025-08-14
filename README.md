@@ -118,6 +118,7 @@ Below is a table of hardware with various UDCs that were tested with Raw Gadget.
 | :---: | :---: | :---: | :---: | :---: |
 | Any | `5.3.0-45-generic` | `dummy_udc` | `dummy_udc.0` | [Yes](/tests#dummy-udc) |
 | Raspberry Pi Zero | `4.14.97+` | `20980000.usb` | `20980000.usb` (`dwc2`) | [Yes](/tests#raspberry-pi-zero) |
+| Raspberry Pi Zero 2 | `6.12.34+` | `3f980000.usb` | `3f980000.usb` (`dwc2`) | [Yes] |
 | Raspberry Pi 4 | `5.10.63-v7l+` | `fe980000.usb` | `fe980000.usb` (`dwc2`) | [Yes](/tests#raspberry-pi-4) |
 | Raspberry Pi 5 | `6.8.0-1007-raspi` | `1000480000.usb` | `1000480000.usb` (`dwc2`) | [Likely](#75) |
 | USB Armory Mk II | `5.4.87-0` | `2184000.usb` | `ci_hdrc.0` | [Yes](/tests#usb-armory-mkii) |
