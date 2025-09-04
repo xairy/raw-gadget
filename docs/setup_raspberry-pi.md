@@ -1,14 +1,14 @@
 Raw Gadget on Raspberry Pi
 ==========================
 
-This document contains end-to-end instructions on how to set up Raw Gadget on a Raspberri Pi board.
-The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, and Raspberry Pi 4 B, but they should be easily adaptable to other boards.
+This document contains the end-to-end instructions on how to set up Raw Gadget on a Raspberri Pi board.
+The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, Raspberry Pi 4 B, and Raspberry Pi 5, but they should be easily adaptable to other boards.
 
 
 ## Required hardware
 
 - Raspberry Pi board;
-- SD card;
+- SD card and SD card reader;
 - USB UART adapter with jumper cables (or a [Pi-specific adapter](https://8086.net/products#80860010));
 - USB Ethernet adapter (or Wi-Fi support on the board);
 - USB cables.
@@ -16,13 +16,15 @@ The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, and Rasp
 
 ## Instructions
 
-1. [Download](https://www.raspberrypi.com/software/operating-systems/) the latest `Raspberry Pi OS with desktop` image;
+1. [Download](https://www.raspberrypi.com/software/operating-systems/) the latest `Raspberry Pi OS with desktop` image.
+
+    The `Lite` version will likely work as well;
 
 2. Extract the downloaded image and flash it into an SD card:
 
     ``` bash
-    unxz 2024-03-15-raspios-bookworm-armhf.img.xz
-    sudo dd if=2024-03-15-raspios-bookworm-armhf.img of=/dev/sdb bs=4M conv=fsync
+    unxz 2025-05-13-raspios-bookworm-arm64.img.xz
+    sudo dd if=2025-05-13-raspios-bookworm-arm64.img of=/dev/sdb bs=4M conv=fsync
     ```
 
 3. [Create](https://forums.raspberrypi.com/viewtopic.php?t=333248&p=1994926#p1994926) a user `pi` with the password `raspberry` by creating a `bootfs/userconf.txt` file with the following contents:
@@ -42,15 +44,15 @@ The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, and Rasp
     Note that getting the login prompt over UART takes a few minutes when you boot the board for the first time.
 
     Getting a shell over SSH is also fine as long as the USB OTG port on the board remains available.
-    Thus, on Raspberry Pi Zero (without Wi-Fi) you will have to get a shell over UART, as the USB Ethernet cable takes up the USB OTG port;
+    Thus, on Raspberry Pi Zero (without Wi-Fi) you must get a shell over UART, as the USB Ethernet cable would take up the USB OTG port;
 
-6. Get the board connected to the internet by plugging in a USB Ethernet adapter or [use Wi-Fi](https://www.raspberrypi.com/documentation/computers/configuration.html#connect-to-a-wireless-network-2) on a Wi-Fi–enabled board;
+6. Get the board connected to the Internet by plugging in a USB Ethernet adapter or [use Wi-Fi](https://www.raspberrypi.com/documentation/computers/configuration.html#connect-to-a-wireless-network-2) on a Wi-Fi–enabled board;
 
-7. Update the packages: `sudo apt-get update && sudo apt-get dist-upgrade && sudo rpi-update && sudo reboot`;
+7. Update the packages: `sudo apt update && sudo apt full-upgrade && sudo reboot`;
 
-8. Install useful packages: `sudo apt-get install vim git`;
+8. Install useful packages: `sudo apt install vim git`;
 
-9. Install the Linux kernel header by following [these instructions](https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel-headers) Linux kernel headers;
+9. Install the Linux kernel headers by following [these instructions](https://www.raspberrypi.com/documentation/computers/linux_kernel.html#kernel-headers);
 
 10. Setup the dwc2 UDC driver:
 
@@ -78,7 +80,7 @@ The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, and Rasp
     ``` bash
     cd raw-gadget/examples
     make
-    sudo ./keyboard 20980000.usb 20980000.usb
+    sudo ./keyboard 1000480000.usb 1000480000.usb
     ```
 
     You might need to change the [UDC device and driver names](/README.md#usb-device-controllers);
@@ -90,7 +92,7 @@ The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, and Rasp
 
 ## Additional instructions
 
-To turn a Raspberry Pi Zero W into a drive-by USB attack tool:
+To turn Raspberry Pi Zero W into a drive-by USB attack tool:
 
 1. Set up a Wi-Fi hotspot;
 
