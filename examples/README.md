@@ -3,7 +3,7 @@ Raw Gadget Examples
 
 This directory contains two examples of using Raw Gadget:
 
-- `keyboard.c` emulates a USB keyboard that keeps sending keypresses of the letter `x`.
+- `keyboard.c` emulates a USB keyboard that keeps sending keypresses of the letter `X`.
 This example also handles the USB device being reset by the host;
 
 - `printer.c` emulates the enumeration stage of a USB printer.

@@ -699,17 +699,26 @@ int ep_int_in = -1;
 pthread_t ep_int_in_thread;
 bool ep_int_in_thread_spawned = false;
 
+// Modifier bit to press Left Shift.
+#define MOD_LSHIFT 0x02
+
+// 'a' = 0x04, 'b' = 0x05, ..., 'z' = 0x1d
+#define LETTER_TO_HID_KEY(letter) (0x04 + letter - 'a')
+
 void *ep_int_in_loop(void *arg) {
 	int fd = (int)(long)arg;
 
+	// Keyboard sends 8-byte HID reports.
 	struct usb_raw_int_io io;
 	io.inner.ep = ep_int_in;
 	io.inner.flags = 0;
 	io.inner.length = 8;
+	memset(&io.inner.data[0], 0, 8);
 
 	while (true) {
-		memcpy(&io.inner.data[0],
-				"\x00\x00\x1b\x00\x00\x00\x00\x00", 8);
+		// Press the Left Shift + 'x' keys.
+		io.inner.data[0] = MOD_LSHIFT;
+		io.inner.data[2] = LETTER_TO_HID_KEY('x');
 		int rv = usb_raw_ep_write_may_fail(fd,
 						(struct usb_raw_ep_io *)&io);
 		if (rv < 0 && errno == ESHUTDOWN) {
@@ -721,8 +730,8 @@ void *ep_int_in_loop(void *arg) {
 		}
 		printf("ep_int_in: key down: %d\n", rv);
 
-		memcpy(&io.inner.data[0],
-				"\x00\x00\x00\x00\x00\x00\x00\x00", 8);
+		// Release the pressed keys.
+		memset(&io.inner.data[0], 0, 8);
 		rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
 		if (rv < 0 && errno == ESHUTDOWN) {
 			printf("ep_int_in: device was likely reset, exiting\n");

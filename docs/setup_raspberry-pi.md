@@ -85,7 +85,7 @@ The instructions were tested on Raspberry Pi Zero, Raspberry Pi Zero W, Raspberr
 
     You might need to change the [UDC device and driver names](/README.md#usb-device-controllers);
 
-15. Make sure that you see the letter `x` being entered on the host.
+15. Make sure that you see the letter `X` being entered on the host.
 
     With this step, you confirmed that Raw Gadget is working properly.
 
