@@ -12,6 +12,8 @@ In addition, this repository hosts a [copy](/dummy_hcd) of the Dummy HCD/UDC ker
 
 See the [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk [[video](https://www.youtube.com/watch?v=AT3PQjKxa_c)] for details about the Linux Host and Gadget USB subsystems and Raw Gadget.
 
+Also see the [Attacking USB with Raw Gadget](/workshop) workshop for a few hands-on exercises of emulating and proxying USB devices with Raw Gadget.
+
 __Note__:
 Do not use Raw Gadget in production for emulating USB devices with specific classes.
 Instead, use the [Composite Framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
