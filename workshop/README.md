@@ -23,11 +23,8 @@ Note that you must bring your own [hardware](#required-hardware) to attend this 
 However, to avoid discrepancies in the setup, please use Raspberry Pi 5 — the instructions are only provided for this board.
 Raspberry Pi 4 B might work, but only if the USB port on your laptop can provide enough power for the board [2] (note that Raspberry Pi 4 B does not support USB PD).
 
-[2]: The USB port on your laptop must provide enough power to power the Raspberry Pi board and the mouse (or other devices) connected to the board.
-For example, a laptop with a USB PD 3.0–compatible port should work (such port can provide provide 3A/5V according to the USB PD specification, which should be enough to power the board).
-If your laptop does not have such a port, please check the specification of the USB ports on your laptop and test powering the Raspberry Pi.
-Powering the Raspberry Pi via an external power supply will not work, as the Type-C port on the Raspberry Pi will need to be connected to the laptop to allow emulating USB devices for the laptop.
-Powering the Rapspberry Pi via a powered USB hub might work, but [test the setup](#setup-instructions) in advance and make sure that Raw Gadget works.
+[2]: The USB port on your laptop must be able to provide enough power to the Raspberry Pi board and the mouse (or other devices) connected to the board; see [this](/docs/setup_raspberry-pi.md#required-hardware) for the details.
+Make sure to test powering the board before the workshop.
 
 [3]: Windows or Mac might work, but the instructions for these OSes are not provided.
 If you bring a laptop without Linux, you must figure out how to capture USB communication on it.
