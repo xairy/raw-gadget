@@ -7,8 +7,8 @@ As the interface provided by Raw Gadget is the same regardless of the used UDC, 
 Thus, these reproducers can be used to trigger buggy kernel behavior in physical USB hosts by using a Linux-based board that has a UDC.
 
 This document contains the instructions on running syzkaller USB reproducers on a Linux-based board plugged into a physical USB host.
-These instructions were tested with Raspberry Pi boards, but any other board that has a working UDC can be used as well.
-These instructions were written for syzkaller revision [b01b098ace00](https://github.com/google/syzkaller/commit/b01b098ace00ac799e10c38d3d3f1db50437eb57) (July 2nd 2024) and might need to be adapted for newer revisions.
+These instructions were tested with a few Raspberry Pi boards, but any other board that has a working UDC can be used as well.
+These instructions were written for syzkaller revision [d291dd2d58a1](https://github.com/google/syzkaller/commit/d291dd2d58a1885c00a60561048b6ceb1bf1206a) (September 3rd 2025) and might need to be adapted for newer revisions.
 
 
 ## Instructions
@@ -45,13 +45,41 @@ These instructions were written for syzkaller revision [b01b098ace00](https://gi
     -       char device[32];
     -       sprintf(&device[0], "dummy_udc.%llu", procid);
     -       int rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
-    +       int rv = usb_raw_init(fd, speed, "20980000.usb", "20980000.usb");
+    +       int rv = usb_raw_init(fd, speed, "1000480000.usb", "1000480000.usb");
             if (rv < 0) {
                     debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
                     return rv;
     ```
 
-5. Cross-compile `syz-execprog` and `syz-executor`:
+5. For boards that use 16 KB pages (e.g. Raspberry Pi 5; check via `getconf PAGE_SIZE`), [patch syzkaller](https://github.com/google/syzkaller/issues/4876):
+
+    ``` go
+    diff --git a/sys/targets/targets.go b/sys/targets/targets.go
+    index a076d2710..bfd183127 100644
+    --- a/sys/targets/targets.go
+    +++ b/sys/targets/targets.go
+    @@ -295,7 +295,7 @@ var List = map[string]map[string]*Target{
+                    },
+                    ARM64: {
+                            PtrSize:          8,
+    -                       PageSize:         4 << 10,
+    +                       PageSize:         16 << 10,
+                            Triple:           "aarch64-linux-gnu",
+                            KernelArch:       "arm64",
+                            KernelHeaderArch: "arm64",
+    ```
+
+6. Cross-compile `syz-execprog` and `syz-executor`.
+
+    For 64-bit boards (e.g. Raspberry Pi 5):
+
+    ``` bash
+    syz-env make generate
+    syz-env make TARGETARCH=arm64 execprog
+    syz-env make TARGETARCH=arm64 executor
+    ```
+
+    For 32-bit boards (e.g. Raspberry Pi Zero):
 
     ``` bash
     syz-env make generate
@@ -59,12 +87,11 @@ These instructions were written for syzkaller revision [b01b098ace00](https://gi
     syz-env make TARGETARCH=arm executor
     ```
 
-    `GOARM=5` is only required for boards that don't support hardware floating point instructions (such as Raspberry Pi Zero);
+    `GOARM=5` is only required for boards that don't support hardware floating point instructions (e.g. Raspberry Pi Zero);
 
+7. Copy `./bin/linux_arm[64]/syz-execprog` and `./bin/linux_arm[64]/syz-executor` onto the board.
 
-6. Copy `./bin/linux_arm/syz-execprog` and `./bin/linux_arm/syz-executor` onto the board.
-
-    For a Raspberry Pi, one option to copy the files is to enable the SSH server [via](https://www.raspberrypi.com/documentation/computers/remote-access.html#ssh) `sudo raspi-config`.
+    For Raspberry Pi, one option to copy the files is to enable the SSH server [via](https://www.raspberrypi.com/documentation/computers/remote-access.html#ssh) `sudo raspi-config`.
 
     Another option is to copy the files onto the SD card;
 
