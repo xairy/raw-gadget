@@ -321,3 +321,18 @@ This is a bug in usb-proxy that needs to be fixed (caused by improper Interrupt 
 You can also try running other Facedancer examples.
 But note that some of them fail to function without setting a specific USB speed via `export RG_USB_SPEED=1` (or `2` or `3`).
 And note that running `usbproxy.py` requires applying the changes from [this PR](https://github.com/greatscottgadgets/facedancer/pull/162).
+
+
+## Lab 9: Leaking kernel memory via CVE-2025-38494/CVE-2025-38495
+
+1. Build and run the [exploit for CVE-2025-38494/CVE-2025-38495](https://github.com/xairy/kernel-exploits/tree/master/CVE-2025-38494) for leaking up to 64 KB of kernel memory from a Linux host.
+
+    The exploit will only work if the host kernel does not includes fixes for these CVEs (as of 11.09.2025, e.g. Ubuntu kernels are still affected).
+
+2. Check the leaked data for kernel pointers (they start with multiple `0xff` bytes) or interesting strings embedded into it.
+
+You can also look through the [syzbot dashboard for the USB subsystem](https://syzkaller.appspot.com/upstream?label=subsystems%3Ausb) to try finding pure USB bug reproducers that affect the kernel on your host.
+Note that pure USB reproducers should only contain [pseudo-syscalls](https://github.com/google/syzkaller/blob/master/docs/pseudo_syscalls.md) that start with `syz_usb_`.
+If a reproducer contains other syscalls, it requires interacting with the USB stack from the host side and thus cannot be executed as an external USB device.
+For running C reproducers, you will need to patch the [UDC device and driver names](/#usb-device-controllers) in the C code.
+For the instructions on running [syz reproducers](https://github.com/google/syzkaller/blob/master/docs/syscall_descriptions.md#programs), see [Running syzkaller USB reproducers](/docs/syzkaller_reproducers.md).

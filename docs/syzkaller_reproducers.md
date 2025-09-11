@@ -124,6 +124,6 @@ These instructions were written for syzkaller revision [d291dd2d58a1](https://gi
 
     Upon executing this program, a new USB device should appear on the host for a brief moment.
 
-You now can get and run any pure USB bug reproducer from the `ci2-upstream-usb` [syzbot manager](https://syzkaller.appspot.com/upstream?manager=ci2-upstream-usb).
-Note that pure USB reproducers should only contain pseudo-syscalls that start with `syz_usb_`.
+You now can get and run any pure USB bug reproducer from the [syzbot dashboard for the USB subsystem](https://syzkaller.appspot.com/upstream?label=subsystems%3Ausb).
+Note that pure USB reproducers should only contain [pseudo-syscalls](https://github.com/google/syzkaller/blob/master/docs/pseudo_syscalls.md) that start with `syz_usb_`.
 If a reproducer contains other syscalls, it requires interacting with the USB stack from the host side and thus cannot be executed via the described method.
