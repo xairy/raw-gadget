@@ -39,9 +39,9 @@ It's recommended to follow through these instructions before the workshop starts
 2. Install Wireshark on your laptop and check that you can [capture USB communication](https://wiki.wireshark.org/CaptureSetup/USB#linux) on the laptop (choose the `usbmon0` interface after starting Wireshark).
 
 
-## Workshop instructions
+## Slides
 
-Slides to be provided later.
+[Here](https://docs.google.com/presentation/d/11LsMKxJg_YBSIf032cU29EkybfMhT9Gi-0jW3fV5T04/edit?usp=sharing).
 
 
 ## Lab 1: Checking descriptors of USB mouse
