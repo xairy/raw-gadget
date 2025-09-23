@@ -4,9 +4,9 @@ Attacking USB with Raw Gadget
 This is a workshop that serves as an introduction to the USB hacking topic in general and to [Raw Gadget](https://github.com/xairy/raw-gadget) specifically.
 
 The workshop gives an overview of the USB protocol, the Linux USB Gadget subsystem, and the Raw Gadget interface.
-The offered hands-on exercises include capturing and analyzing the communication of USB devices, emulating USB devices via Raw Gadget, and proxying USB devices via Raw Gadget and libusb to aid reverse engineering.
+The offered hands-on exercises include capturing and analyzing the communication of USB devices, emulating USB devices via Raw Gadget, and proxying USB devices via Raw Gadget and libusb.
 
-Note that you must bring your own [hardware](#required-hardware) to attend this workshop at [BalCCon2k25](https://2k25.balccon.org/).
+This workshop was delivered at BalcCon25k; see the accompanying [slides](https://docs.google.com/presentation/d/11LsMKxJg_YBSIf032cU29EkybfMhT9Gi-0jW3fV5T04/edit?usp=sharing).
 
 
 ## Required hardware
@@ -37,11 +37,6 @@ It's recommended to follow through these instructions before the workshop starts
 1. Follow through the [instructions](/docs/setup_raspberry-pi.md) for setting up Raw Gadget on Raspberry Pi;
 
 2. Install Wireshark on your laptop and check that you can [capture USB communication](https://wiki.wireshark.org/CaptureSetup/USB#linux) on the laptop (choose the `usbmon0` interface after starting Wireshark).
-
-
-## Slides
-
-[Here](https://docs.google.com/presentation/d/11LsMKxJg_YBSIf032cU29EkybfMhT9Gi-0jW3fV5T04/edit?usp=sharing).
 
 
 ## Lab 1: Checking descriptors of USB mouse
@@ -240,7 +235,7 @@ This is a bug in usb-proxy that needs to be fixed (caused by improper Interrupt 
 
 1. Modify usb-proxy to inverse the mouse movement direction.
 
-    The built-in JSON-based pattern rules are not flexible enought to achieve this.
+    The built-in JSON-based pattern rules are not flexible enough to achieve this.
 
     Instead, modify `ep_loop_read` in `proxy.cpp` to change the `io.data` bytes manually;
 
@@ -326,6 +321,8 @@ And note that running `usbproxy.py` requires applying the changes from [this PR]
 ## Lab 9: Leaking kernel memory via CVE-2025-38494/CVE-2025-38495
 
 1. Build and run the [exploit for CVE-2025-38494/CVE-2025-38495](https://github.com/xairy/kernel-exploits/tree/master/CVE-2025-38494) for leaking up to 64 KB of kernel memory from a Linux host.
+
+    Note that you will need to apply a [fix](https://lore.kernel.org/linux-usb/a6024e8eab679043e9b8a5defdb41c4bda62f02b.1757016152.git.andreyknvl@gmail.com/) to Raw Gadget for running the exploit.
 
     The exploit will only work if the host kernel does not includes fixes for these CVEs (as of 11.09.2025, e.g. Ubuntu kernels are still affected).
 
