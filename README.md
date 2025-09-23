@@ -3,20 +3,21 @@ Raw Gadget
 
 [Raw Gadget](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst) is a Linux kernel module that implements a low-level interface for the Linux USB Gadget subsystem.
 
-Raw Gadget can be used to emulate USB devices, both physical and virtual ones.
+Raw Gadget can be used to emulate software-controlled USB devices, both physical and virtual ones.
 Emulating physical devices requires a Linux-based board with a [USB Device Controller](/README.md#usb-device-controllers) (UDC), such as a Raspberry Pi.
 Emulating virtual devices requires no hardware and instead relies on the [Dummy HCD/UDC](/dummy_hcd) module (such devices get connected to the kernel Raw Gadget is running on).
 
 This repository contains instructions, [examples](/examples), and [tests](/tests) for Raw Gadget.
-In addition, this repository hosts a [copy](/dummy_hcd) of the Dummy HCD/UDC kernel module for out-of-tree building.
+In addition, this repository hosts copies of the [Raw Gadget](/raw_gadget) and the [Dummy HCD/UDC](/dummy_hcd) kernel modules for out-of-tree building.
+
+
+## Learning materials
+
+See the rest of this README for the general information and the set up instructions for Raw Gadget.
 
 See the [Fuzzing USB with Raw Gadget](https://docs.google.com/presentation/d/1sArf2cN5tAOaovlaL3KBPNDjYOk8P6tRrzfkclsbO_c/edit?usp=sharing) talk [[video](https://www.youtube.com/watch?v=AT3PQjKxa_c)] for details about the Linux Host and Gadget USB subsystems and Raw Gadget.
 
-Also see the [Attacking USB with Raw Gadget](/workshop) workshop for a few hands-on exercises of emulating and proxying USB devices with Raw Gadget.
-
-__Note__:
-Do not use Raw Gadget in production for emulating USB devices with specific classes.
-Instead, use the [Composite Framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
+See the [Attacking USB with Raw Gadget](/workshop) workshop for a few hands-on exercises of emulating and proxying USB devices with Raw Gadget.
 
 
 ## Comparison to other interfaces
@@ -27,7 +28,7 @@ Most notably there is the [Composite Framework](https://docs.kernel.org/usb/gadg
 and the [legacy gadget drivers modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy)
 (including [GadgetFS](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/inode.c)).
 
-Most of the Gadset subsystem interfaces (with the exception of GadgetFS and the FunctionFS-based composite function) only allow emulating USB devices of specific classes.
+Most of the Gadget subsystem interfaces (with the exception of GadgetFS and the FunctionFS-based composite function) only allow emulating USB devices of specific classes.
 Compared to them, Raw Gadget allows emulating USB devices of arbitary classes.
 
 GadgetFS and the FunctionFS-based composite function do allow emulating USB devices of arbitrary classes.
@@ -39,6 +40,10 @@ Raw Gadget is thus the perfect choice for fuzzing and exploiting USB hosts or fo
 
 You can find more details about the difference between Raw Gadget and GadgetFS [in the kernel documentation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/usb/raw-gadget.rst).
 
+__Note__:
+It's not recommended to use Raw Gadget in production for emulating USB devices with standard classes.
+Instead, use the [Composite Framework](https://docs.kernel.org/usb/gadget_configfs.html) or the [legacy gadget driver modules](https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy).
+
 
 ## Limitations
 
@@ -48,7 +53,7 @@ While Raw Gadget does support emulating a wide range of USB device types, it has
 - Also see [TODOs](#todo) for a list of other missing features.
 
 These are not foundational limitations of the technology but rather just features missing from the implementation.
-They might implemented in the future.
+They might be implemented in the future.
 
 In addition, different UDCs have their own limitations:
 
