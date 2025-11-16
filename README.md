@@ -288,6 +288,23 @@ Make sure that the UDC driver module is loaded.
 Also see [USB Device Controllers](#usb-device-controllers) about UDC names.
 
 
+### Invalid argument
+
+`USB_RAW_IOCTL_EP_ENABLE` returns `EINVAL`, error code `22`:
+
+```
+ioctl(USB_RAW_IOCTL_EP_ENABLE): Invalid argument
+```
+
+This error means that Raw Gadget failed to find an available UDC endpoint that matched the required endpoint parameters.
+This happens when either the UDC does not support emulating endpoints with such parameters at all or when all such UDC endpoints are already in use.
+
+To verify the cause of the issue, you can trace `raw_ioctl_ep_enable` (e.g., by adding debugging print calls) and see which part of it is failing.
+Or manually check the information provided by `USB_RAW_IOCTL_EPS_INFO` against the parameters in the endpoint descriptor (but note that UDC drivers might have internal requirements for endpoint parameters not exposed via `USB_RAW_IOCTL_EPS_INFO`; failing checks for these would result in `usb_ep_enable` failing).
+
+The likely solution is to use a different UDC that supports the required number of endpoints with required parameters.
+
+
 ### Cannot send after transport endpoint shutdown
 
 Endpoint operations return `ESHUTDOWN`, error code `108`:
